@@ -27,6 +27,11 @@
 	TextElement.Foreground="{Binding FontBrush}"
 	Topmost="{Binding Topmost}"
 	mc:Ignorable="d"
+	WindowStyle="None"
+	BorderThickness="0"
+	ResizeMode="CanResizeWithGrip"
+	xmlns:avalonDockControls="clr-namespace:AvalonDock.Controls;assembly=AvalonDock"
+	xmlns:avalonDockConverters="clr-namespace:AvalonDock.Converters;assembly=AvalonDock"
 	>
 	<!--
 		copied from: https://github.com/Kinnara/ModernWpf/blob/master/ModernWpf/Styles/Window.xaml#L27
@@ -37,6 +42,7 @@
 			CaptionHeight="{DynamicResource {x:Static ui:TitleBar.HeightKey}}"
 			CornerRadius="0"
 			UseAeroCaptionButtons="False"
+			ResizeBorderThickness="0"
 			/>
 	</WindowChrome.WindowChrome>
 
@@ -874,6 +880,21 @@
 			LayoutItemTemplateSelector="{StaticResource ViewTemplateSelector}"
 			Theme="{Binding CurrentTheme}"
 			>
+			
+			<!-- 重写Generic.xaml中StackPanel的宽和高，使得控件可以紧贴窗口边缘 -->
+			<DockingManager.AnchorSideTemplate>
+				<ControlTemplate TargetType="{x:Type avalonDockControls:LayoutAnchorSideControl}">
+					<ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Children}">
+						<ItemsControl.ItemsPanel>
+							<ItemsPanelTemplate>
+								<StackPanel MinWidth="0" MinHeight="0" Orientation="{Binding Path=Model.Side, RelativeSource={RelativeSource AncestorType={x:Type avalonDockControls:LayoutAnchorSideControl}, Mode=FindAncestor}, Converter={avalonDockConverters:AnchorSideToOrientationConverter}}" />
+							</ItemsPanelTemplate>
+						</ItemsControl.ItemsPanel>
+					</ItemsControl>
+				</ControlTemplate>
+			</DockingManager.AnchorSideTemplate>
+
+			
 			<DockingManager.Resources>
 				<SolidColorBrush
 					x:Key="{x:Static reskeys:ResourceKeys.TabBackground}"
