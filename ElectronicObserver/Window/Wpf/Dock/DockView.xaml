@@ -4,6 +4,7 @@
 	xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:local="clr-namespace:ElectronicObserver.Window.Wpf.Dock"
+	xmlns:ww="clr-namespace:ElectronicObserver.Window.Wpf"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	x:Name="DockControl"
 	d:DesignHeight="450"
@@ -13,6 +14,18 @@
 	TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Window}}"
 	mc:Ignorable="d"
 	>
+
+	<UserControl.Resources>
+		<Style TargetType="Separator">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Separator">
+						<Border Background="{x:Static ww:ConfigBrushes.SubBackBrush}"/>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+	</UserControl.Resources>
 	<Grid DataContext="{Binding ViewModel, ElementName=DockControl}" IsSharedSizeScope="True">
 		<ItemsControl ItemsSource="{Binding Docks}">
 			<ItemsControl.ItemTemplate>

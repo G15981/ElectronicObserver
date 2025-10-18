@@ -6,6 +6,7 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:electronicObserverTypes="clr-namespace:ElectronicObserver.Core.Types;assembly=ElectronicObserver.Core"
 	xmlns:local="clr-namespace:ElectronicObserver.Window.Wpf.FleetOverview"
+	xmlns:ww="clr-namespace:ElectronicObserver.Window.Wpf"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:viewModels="clr-namespace:ElectronicObserver.Window.Wpf.Fleet.ViewModels"
 	xmlns:views="clr-namespace:ElectronicObserver.Window.Wpf.Fleet.Views"
@@ -20,6 +21,15 @@
 
 	<UserControl.Resources>
 		<local:FleetOverviewViewModelBindingProxy x:Key="Proxy" DataContext="{Binding ViewModel, ElementName=FleetOverviewControl}" />
+		<Style TargetType="Separator">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Separator">
+						<Border Background="{x:Static ww:ConfigBrushes.SubBackBrush}"/>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
 	</UserControl.Resources>
 
 	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">

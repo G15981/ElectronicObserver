@@ -6,6 +6,7 @@
 	xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 	xmlns:electronicObserverTypes="clr-namespace:ElectronicObserver.Core.Types;assembly=ElectronicObserver.Core"
 	xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+	xmlns:ww="clr-namespace:ElectronicObserver.Window.Wpf"
 	xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
 	xmlns:translations="clr-namespace:ElectronicObserver.Translations"
 	xmlns:viewModels="clr-namespace:ElectronicObserver.Window.Wpf.Fleet.ViewModels"
@@ -40,7 +41,15 @@
 			<Style TargetType="Border">
 				<Setter Property="Background" Value="Transparent" />
 			</Style>
-
+			<Style TargetType="Separator">
+				<Setter Property="Template">
+					<Setter.Value>
+						<ControlTemplate TargetType="Separator">
+							<Border Background="{x:Static ww:ConfigBrushes.SubBackBrush}"/>
+						</ControlTemplate>
+					</Setter.Value>
+				</Setter>
+			</Style>
 			<viewModels:FleetViewModelBindingProxy x:Key="Proxy" DataContext="{Binding}" />
 		</ResourceDictionary>
 	</UserControl.Resources>
