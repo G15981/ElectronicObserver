@@ -26,11 +26,16 @@ public class FleetConditionViewModel : ObservableObject
 
 			(BackColor, ForeColor) = cond switch
 			{
-				< 20 => (System.Drawing.Color.LightCoral, System.Drawing.Color.Black),
-				< 30 => (System.Drawing.Color.LightSalmon, System.Drawing.Color.Black),
-				< 40 => (System.Drawing.Color.Moccasin, System.Drawing.Color.Black),
-				< 50 => (System.Drawing.Color.Transparent, Utility.Configuration.Config.UI.ForeColor),
-				_ => (System.Drawing.Color.LightGreen, System.Drawing.Color.Black)
+				//< 20 => (System.Drawing.Color.LightCoral, System.Drawing.Color.Black),
+				//< 30 => (System.Drawing.Color.LightSalmon, System.Drawing.Color.Black),
+				//< 40 => (System.Drawing.Color.Moccasin, System.Drawing.Color.Black),
+				//< 50 => (System.Drawing.Color.Transparent, Utility.Configuration.Config.UI.ForeColor),
+				//_ => (System.Drawing.Color.LightGreen, System.Drawing.Color.Black)
+				< 20 => (Utility.Configuration.Config.UI.Fleet_ColorConditionVeryTired, Utility.Configuration.Config.UI.Fleet_ColorConditionText),
+				< 30 => (Utility.Configuration.Config.UI.Fleet_ColorConditionTired, Utility.Configuration.Config.UI.Fleet_ColorConditionText),
+				< 40 => (Utility.Configuration.Config.UI.Fleet_ColorConditionLittleTired, Utility.Configuration.Config.UI.Fleet_ColorConditionText),
+				< 50 => (Utility.Configuration.Config.UI.BackColor, Utility.Configuration.Config.UI.ForeColor),
+				_ => (Utility.Configuration.Config.UI.Fleet_ColorConditionSparkle, Utility.Configuration.Config.UI.Fleet_ColorConditionText)
 			};
 		}
 		else
