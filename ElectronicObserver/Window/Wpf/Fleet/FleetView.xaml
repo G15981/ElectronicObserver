@@ -42,13 +42,7 @@
 				<Setter Property="Background" Value="Transparent" />
 			</Style>
 			<Style TargetType="Separator">
-				<Setter Property="Template">
-					<Setter.Value>
-						<ControlTemplate TargetType="Separator">
-							<Border Background="{x:Static ww:ConfigBrushes.SubBackBrush}"/>
-						</ControlTemplate>
-					</Setter.Value>
-				</Setter>
+				<Setter Property="Background" Value="{x:Static ww:ConfigBrushes.SubBackBrush}" />
 			</Style>
 			<viewModels:FleetViewModelBindingProxy x:Key="Proxy" DataContext="{Binding}" />
 		</ResourceDictionary>

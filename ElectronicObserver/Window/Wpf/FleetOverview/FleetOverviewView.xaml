@@ -21,15 +21,9 @@
 
 	<UserControl.Resources>
 		<local:FleetOverviewViewModelBindingProxy x:Key="Proxy" DataContext="{Binding ViewModel, ElementName=FleetOverviewControl}" />
-		<Style TargetType="Separator">
-			<Setter Property="Template">
-				<Setter.Value>
-					<ControlTemplate TargetType="Separator">
-						<Border Background="{x:Static ww:ConfigBrushes.SubBackBrush}"/>
-					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
+        <Style TargetType="Separator">
+            <Setter Property="Background" Value="{x:Static ww:ConfigBrushes.SubBackBrush}" />
+        </Style>
 	</UserControl.Resources>
 
 	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
