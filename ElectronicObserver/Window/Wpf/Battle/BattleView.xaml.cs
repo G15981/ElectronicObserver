@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using ElectronicObserver.Data;
 using ElectronicObserver.Data.Battle;
 
@@ -31,5 +32,13 @@ public partial class BattleView : UserControl
 
 		if (bm == null || bm.BattleMode == BattleManager.BattleModes.Undefined)
 			e.Handled = true;
+	}
+
+	private void ScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+	{
+		var scrollViewer = (ScrollViewer)sender;
+		// 根据滚轮方向左右滚动
+		scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - e.Delta);
+		e.Handled = true; // 阻止默认的垂直滚动
 	}
 }

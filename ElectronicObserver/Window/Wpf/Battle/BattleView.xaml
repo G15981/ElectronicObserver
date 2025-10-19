@@ -42,7 +42,7 @@
 				</Style>
 			</Grid.Resources>
 
-			<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+			<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
 				<WrapPanel Orientation="Vertical">
 					<Grid Visibility="{Binding ViewVisible, Converter={StaticResource BooleanToHiddenConverter}}">
 						<Grid.RowDefinitions>
