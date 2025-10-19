@@ -18,7 +18,7 @@
 	ui:WindowHelper.FixMaximizedWindow="True"
 	Background="{StaticResource SystemControlPageBackgroundAltHighBrush}"
 	BorderBrush="{StaticResource WindowBorder}"
-	BorderThickness="1"
+	BorderThickness="0"
 	FontFamily="{StaticResource ContentControlThemeFontFamily}"
 	FontSize="{StaticResource ControlContentThemeFontSize}"
 	Foreground="{StaticResource SystemControlPageTextBaseHighBrush}"
