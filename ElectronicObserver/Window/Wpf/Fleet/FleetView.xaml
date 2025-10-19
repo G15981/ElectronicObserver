@@ -272,8 +272,8 @@
 
 		<ScrollViewer
 			Grid.Row="1"
-			HorizontalScrollBarVisibility="Auto"
-			VerticalScrollBarVisibility="Auto"
+			HorizontalScrollBarVisibility="Disabled"
+			VerticalScrollBarVisibility="Hidden"
 			>
 			<ItemsControl ItemsSource="{Binding ControlMember}">
 				<ItemsControl.ItemsPanel>
