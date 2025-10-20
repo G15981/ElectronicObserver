@@ -25,6 +25,7 @@
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="ListBoxItem">
+						<Border x:Name="Bd" Background="Transparent">
 						<VirtualizingStackPanel>
 							<ContentPresenter
 								x:Name="ContentPresenter"
@@ -36,10 +37,25 @@
 								TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Window}}"
 								/>
 						</VirtualizingStackPanel>
+						</Border>
+
+						<!-- ✅ 在 ControlTemplate 内部添加触发器 -->
+							<ControlTemplate.Triggers>
+								<!-- 悬停效果 -->
+								<Trigger Property="IsMouseOver" Value="True">
+									<Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+								</Trigger>
+
+								<!-- 选中效果 -->
+								<Trigger Property="IsSelected" Value="True">
+									<Setter TargetName="Bd" Property="Background" Value="#3340A9FF"/>
+									<Setter TargetName="ContentPresenter" Property="TextElement.Foreground" Value="White"/>
+								</Trigger>
+							</ControlTemplate.Triggers>	
 					</ControlTemplate>
-				</Setter.Value>
-			</Setter>
-		</Style>
+		</Setter.Value>
+	</Setter>
+</Style>
 
 		<Style BasedOn="{StaticResource DefaultListBoxItemStyleEO}" TargetType="ListBoxItem" />
 
@@ -89,10 +105,14 @@
 	<UserControl.ContextMenu>
 		<ContextMenu>
 			<MenuItem Command="{Binding ContextMenuLog_Clear_ClickCommand}" Header="{Binding FormLog.Clear}" />
+			<Separator/>
+			<!-- 新增复制按钮 -->
+			<MenuItem Header="Copy" Click="CopySelectedItem_Click" />
 		</ContextMenu>
 	</UserControl.ContextMenu>
 
 	<ListBox
+        x:Name="LogListBox"
 		Width="Auto"
 		Padding="0 0 0 10"
 		Background="Transparent"
@@ -100,6 +120,7 @@
 		ScrollViewer.HorizontalScrollBarVisibility="Auto"
 		ScrollViewer.ScrollChanged="ListBox_ScrollChanged"
 		ScrollViewer.VerticalScrollBarVisibility="Auto"
+        SelectionMode="Single"
 		TextOptions.TextFormattingMode="Display"
 		VirtualizingStackPanel.IsVirtualizing="True"
 		VirtualizingStackPanel.VirtualizationMode="Recycling"

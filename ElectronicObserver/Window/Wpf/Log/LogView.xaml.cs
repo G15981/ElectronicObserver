@@ -31,4 +31,24 @@ public partial class LogView
 			scrollViewer.ScrollToBottom();
 		}
 	}
+
+	// ✅ 新增：复制选中行到剪贴板
+	private void CopySelectedItem_Click(object sender, RoutedEventArgs e)
+	{
+		if (LogListBox.SelectedItem is string selectedText)
+		{
+			try
+			{
+				Clipboard.SetText(selectedText);
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show($"复制失败：{ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+		else
+		{
+			MessageBox.Show("请先选择一行日志。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+		}
+	}
 }
