@@ -36,7 +36,7 @@ public class CefKeyboardHandler : IKeyboardHandler
 
 		switch (key)
 		{
-			case Key.F2:
+			case Key.F1:
 				ViewModel.ScreenshotCommand.Execute(null);
 				return true;
 

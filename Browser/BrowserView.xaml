@@ -38,7 +38,7 @@
 	-->
 
 	<Window.InputBindings>
-		<KeyBinding Key="F2" Command="{Binding ScreenshotCommand}" />
+		<KeyBinding Key="F1" Command="{Binding ScreenshotCommand}" />
 		<KeyBinding Key="F5" Command="{Binding RefreshCommand}" />
 		<KeyBinding
 			Key="F5"
@@ -390,7 +390,7 @@
 					<MenuItem
 						Command="{Binding ScreenshotCommand}"
 						Header="{Binding FormBrowser.ToolMenu_Other_ScreenShot}"
-						InputGestureText="F2"
+						InputGestureText="F1"
 						>
 						<MenuItem.Icon>
 							<Image Source="{Binding Icons.Screenshot}" />
