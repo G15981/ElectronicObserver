@@ -39,7 +39,7 @@ public partial class FormMainWpf : System.Windows.Window
 	{
 		//if (e.ButtonState == MouseButtonState.Pressed)
 		//	this.DragMove();
-		if (e.Source is MenuItem)
+		if (e.Source is MenuItem || e.Source is ComboBox || e.Source is TextBox)
 		{
 			// 点击到菜单项 -> 不拖动，让菜单正常工作
 			return;
