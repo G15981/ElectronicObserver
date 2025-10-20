@@ -97,7 +97,7 @@ public partial class FormMainViewModel : ObservableObject
 	private FileService FileService { get; }
 	private System.Windows.Forms.Timer UIUpdateTimer { get; }
 	public bool Topmost { get; set; }
-	public int GridSplitterSize { get; set; } = 1;
+	public int GridSplitterSize { get; set; } = 0;
 	public bool CanChangeGridSplitterSize { get; set; }
 	public bool LockLayout { get; set; }
 	public bool CanAutoHide => !LockLayout;
