@@ -588,6 +588,12 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 	}
 
 	[RelayCommand]
+	private void ForceRefresh()
+	{
+		RefreshBrowser();
+	}
+
+	[RelayCommand]
 	private void GoToLoginPage()
 	{
 		if (Configuration is null) return;

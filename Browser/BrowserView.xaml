@@ -370,7 +370,7 @@
 						</Image>
 					</MenuItem.Icon>
 				</MenuItem>
-				<MenuItem Height="Auto" Command="{Binding RefreshCommand}">
+				<MenuItem Height="Auto" Command="{Binding RefreshCommand}" PreviewMouseDown="Refresh_PreviewMouseDown">
 					<MenuItem.Icon>
 						<Image Source="{Binding Icons.Refresh}" />
 					</MenuItem.Icon>
