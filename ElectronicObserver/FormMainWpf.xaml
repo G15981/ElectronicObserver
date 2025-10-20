@@ -39,7 +39,7 @@
 	-->
 	<WindowChrome.WindowChrome>
 		<WindowChrome
-			CaptionHeight="{DynamicResource {x:Static ui:TitleBar.HeightKey}}"
+			CaptionHeight="0"
 			CornerRadius="0"
 			UseAeroCaptionButtons="False"
 			ResizeBorderThickness="0"
@@ -173,6 +173,8 @@
 			Height="Auto"
 			Margin="2"
 			HorizontalAlignment="Stretch"
+			
+			PreviewMouseLeftButtonDown="DragArea_MouseLeftButtonDown"
 			>
 			<Menu.ItemsPanel>
 				<ItemsPanelTemplate>
@@ -835,7 +837,20 @@
 					</MenuItem.Icon>
 				</MenuItem>
 			</MenuItem>
-
+			<MenuItem
+				Grid.Column="5"
+				Height="Auto"
+				HorizontalAlignment="Left"
+				d:Header="Kai"
+				Header="〄"
+				>
+				<MenuItem
+						d:Header="TitleBar"
+						Click="ToggleTitleBarVisibility"
+						Header="切换标题栏"
+						>
+				</MenuItem>
+			</MenuItem>
 			<MenuItem
 				Grid.Column="5"
 				Height="Auto"

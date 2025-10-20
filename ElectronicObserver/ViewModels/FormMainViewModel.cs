@@ -335,7 +335,7 @@ public partial class FormMainViewModel : ObservableObject
 			if (args.PropertyName is not nameof(LockLayout)) return;
 
 			Config.Life.LockLayout = LockLayout;
-			SaveLayout(Window);
+			//SaveLayout(Window);//锁定窗口不保存布局文件。
 			ConfigurationChanged();
 		};
 
