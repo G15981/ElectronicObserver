@@ -613,7 +613,7 @@
 												Foreground="{Binding Foreground}"
 												Text="{Binding Text}"
 												TextAlignment="Right"
-												MinWidth="26" />
+												MinWidth="30" />
 										</Grid>
 									</Border>
 
