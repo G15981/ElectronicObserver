@@ -313,8 +313,7 @@
 								<Grid>
 									<Grid.ColumnDefinitions>
 										<ColumnDefinition
-											Width="Auto"
-											MaxWidth="{Binding Name.MaxWidth}"
+											Width="{Binding Name.MaxWidth}"
 											SharedSizeGroup="ShipName"
 											/>
 										<ColumnDefinition Width="Auto" SharedSizeGroup="ShipLevel" />
@@ -517,6 +516,7 @@
 											<StackPanel
 												Grid.Column="2"
 												Margin="2 0"
+												Width="30"
 												Visibility="{Binding NextVisible, Converter={StaticResource BooleanToVisibilityConverter}}"
 												>
 												<StackPanel.Resources>
@@ -574,7 +574,7 @@
 											<!--  margin -2 is to prevent progress bar from expanding endlessly  -->
 											<ProgressBar
 												Grid.Row="1"
-												MaxWidth="{Binding ActualWidth, ElementName=HealthText}"
+												Width="80"
 												Margin="-2 0"
 												DataContext="{Binding AkashiRepairBar}"
 												Foreground="{Binding Foreground}"
@@ -584,7 +584,7 @@
 												/>
 											<ProgressBar
 												Grid.Row="1"
-												MaxWidth="{Binding ActualWidth, ElementName=HealthText}"
+												Width="80"
 												Margin="-2 0"
 												DataContext="{Binding HPBar}"
 												Foreground="{Binding Foreground}"
@@ -622,7 +622,7 @@
 										DataContext="{Binding ShipResource}"
 										ToolTip="{Binding ToolTip}"
 										>
-										<StackPanel Width="32" VerticalAlignment="Center">
+										<StackPanel Width="30" VerticalAlignment="Center">
 											<ProgressBar
 												Margin="0 2"
 												Background="{Binding Background}"
