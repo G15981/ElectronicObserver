@@ -1008,8 +1008,8 @@ public partial class BattleViewModel : AnchorableViewModel
 			HPBars[index].BackColor = HPBars[index] switch
 			{
 				//{ Value: < 1, IsTargetable: true } => Color.FromArgb(0x40, 0x4D, 0xA6, 0xDF),
-				//_ => Color.Transparent,
 				{ Value: < 1, IsTargetable: true } => Color.Transparent,
+				_ => Color.Transparent,
 			};
 		}
 
