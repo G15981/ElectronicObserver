@@ -26,7 +26,7 @@
         </Style>
 	</UserControl.Resources>
 
-	<ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+	<ScrollViewer HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden">
 		<Grid DataContext="{Binding ViewModel, ElementName=FleetOverviewControl}" IsSharedSizeScope="True">
 			<Grid.RowDefinitions>
 				<RowDefinition Height="Auto" />
