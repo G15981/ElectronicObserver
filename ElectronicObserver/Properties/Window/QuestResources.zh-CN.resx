@@ -124,7 +124,7 @@
     <value>(未获得的任务 x {0}）</value>
   </data>
   <data name="SearchEngineKancolleSpecifier" xml:space="preserve">
-    <value>+砍口垒</value>
+    <value></value>
   </data>
   <data name="LookUpSpecificQuestOnStartpage" xml:space="preserve">
     <value>在 _Startpage 中搜索“{0}”</value>

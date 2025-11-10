@@ -190,7 +190,7 @@
     <value>获取方式搜索</value>
   </data>
   <data name="KancolleSpecifier" xml:space="preserve">
-    <value>+砍口垒</value>
+    <value></value>
   </data>
   <data name="InitialEquipmentShip" xml:space="preserve">
     <value>初始有装备的舰娘：</value>
