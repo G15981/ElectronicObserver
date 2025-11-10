@@ -568,6 +568,11 @@ public partial class FormMainViewModel : ObservableObject
 		view.Visibility = Visibility.Visible;
 		view.IsSelected = true;
 		view.IsActive = true;
+
+		// 在 UI 布局更新完成后重新应用 Anchorable 属性（尤其是 CanClose）
+		// 这样在 LockLayout=true 且 CanCloseFloatWindowInLock=true 时，
+		// 新打开并立即变为浮动的窗口能正确显示关闭按钮。
+		Window.Dispatcher.BeginInvoke(new Action(() => SetAnchorableProperties()));
 	}
 
 	[RelayCommand]
@@ -1712,8 +1717,36 @@ public partial class FormMainViewModel : ObservableObject
 	{
 		foreach (AnchorableViewModel view in Views)
 		{
+			// 基本行为：锁定布局时禁止浮动；默认禁止关闭
 			view.CanFloat = !LockLayout;
-			view.CanClose = !LockLayout;
+			bool canClose = !LockLayout;
+
+			// 如果布局被锁定但配置允许在锁定时关闭浮动窗口，
+			// 则仅当该视图当前处于“浮动”状态时允许关闭。
+			if (LockLayout && Configuration.Config.Life.CanCloseFloatWindowInLock)
+			{
+				try
+				{
+					var layout = DockingManager.Layout;
+					if (layout is not null)
+					{
+						var la = layout.Descendents()
+							.OfType<AvalonDock.Layout.LayoutAnchorable>()
+							.FirstOrDefault(a => a.ContentId == view.ContentId);
+
+						if (la is not null && la.IsFloating)
+						{
+							canClose = true;
+						}
+					}
+				}
+				catch
+				{
+					// 防御性：若查找失败则保留默认 canClose（不抛异常影响 UI）
+				}
+			}
+
+			view.CanClose = canClose;
 		}
 	}
 
