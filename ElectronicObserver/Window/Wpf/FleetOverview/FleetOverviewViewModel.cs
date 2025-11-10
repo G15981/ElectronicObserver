@@ -2,11 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using CommunityToolkit.Mvvm.DependencyInjection;
+using ElectronicObserver.Core.Services.Data;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Core.Types.Extensions;
 using ElectronicObserver.Data;
 using ElectronicObserver.Observer;
 using ElectronicObserver.Resource;
+using ElectronicObserver.Utility;
 using ElectronicObserver.Utility.Data;
 using ElectronicObserver.Utility.Mathematics;
 using ElectronicObserver.ViewModels;
@@ -18,6 +20,7 @@ namespace ElectronicObserver.Window.Wpf.FleetOverview;
 public class FleetOverviewViewModel : AnchorableViewModel
 {
 	public FormFleetOverviewTranslationViewModel FormFleetOverview { get; }
+	public ITransportGaugeService TransportGaugeService { get; }
 
 	public List<FleetViewModel> Fleets { get; }
 	public FleetOverviewItemViewModel AnchorageRepairingTimer { get; }
@@ -25,7 +28,8 @@ public class FleetOverviewViewModel : AnchorableViewModel
 
 	public FleetOverviewViewModel(List<FleetViewModel> fleets) : base("Fleets", "Fleets", IconContent.FormFleet)
 	{
-		FormFleetOverview = Ioc.Default.GetService<FormFleetOverviewTranslationViewModel>()!;
+		FormFleetOverview = Ioc.Default.GetRequiredService<FormFleetOverviewTranslationViewModel>();
+		TransportGaugeService = Ioc.Default.GetRequiredService<ITransportGaugeService>();
 
 		Title = FormFleetOverview.Title;
 		FormFleetOverview.PropertyChanged += (_, _) => Title = FormFleetOverview.Title;
@@ -98,8 +102,6 @@ public class FleetOverviewViewModel : AnchorableViewModel
 			FleetData fleet2 = KCDatabase.Instance.Fleet[2];
 
 			int tp = TpGauge.Normal.GetTp([fleet1, fleet2]);
-			int tankTpE2 = TpGauge.Spring25E2.GetTp([fleet1, fleet2]);
-			int tankTpE5 = TpGauge.Spring25E5.GetTp([fleet1, fleet2]);
 
 			List<IShipData> members = fleet1.MembersWithoutEscaped!
 				.Concat(fleet2.MembersWithoutEscaped!)
@@ -126,10 +128,7 @@ public class FleetOverviewViewModel : AnchorableViewModel
 				radar.Count(i => i > 0),
 				transport.Count(i => i> 0),
 				landing.Count(i => i > 0),
-				tankTpE2,
-				(int)Math.Floor(tankTpE2 * 0.7),
-				tankTpE5,
-				(int)Math.Floor(tankTpE5 * 0.7)
+				GetTankTpTooltip(fleet1, fleet2)
 			);
 
 			CombinedTag.SmokeGeneratorRates = new List<IFleetData> { fleet1, fleet2 }.GetSmokeTriggerRates().TotalRate();
@@ -152,6 +151,21 @@ public class FleetOverviewViewModel : AnchorableViewModel
 				DateTimeHelper.TimeToCSVString(KCDatabase.Instance.Fleet.AnchorageRepairingTimer.AddMinutes(20));
 		}
 
+	}
+
+	private string GetTankTpTooltip(IFleetData fleet1, IFleetData fleet2)
+	{
+		if (Configuration.Config.FormFleet.DisplayOnlyCurrentEventTankTp)
+		{
+			return TransportGaugeService.GetCurrentEventLandingOperationToolTip([fleet1, fleet2]);
+		}
+
+		List<TpGauge> gauges = Configuration.Config.FormFleet.TankTpGaugesToDisplay
+			.Where(g => g.ShouldDisplay)
+			.Select(g => g.TpGauge)
+			.ToList();
+
+		return TransportGaugeService.GetEventLandingOperationToolTip([fleet1, fleet2], gauges, true);
 	}
 
 	private void UpdateTimerTick()

@@ -14,6 +14,7 @@ using ElectronicObserver.Avalonia.Dialogs.ShipSelector;
 using ElectronicObserver.Avalonia.Services;
 using ElectronicObserver.Common;
 using ElectronicObserver.Core.Services;
+using ElectronicObserver.Core.Services.Data;
 using ElectronicObserver.Core.Types.Data;
 using ElectronicObserver.Data;
 using ElectronicObserver.Data.Bonodere;
@@ -21,6 +22,7 @@ using ElectronicObserver.Database.DataMigration;
 using ElectronicObserver.Dialogs;
 using ElectronicObserver.Services;
 using ElectronicObserver.Utility;
+using ElectronicObserver.Utility.Data;
 using ElectronicObserver.Utility.ElectronicObserverApi;
 using ElectronicObserver.Utility.ElectronicObserverApi.DataIssueLogs;
 using ElectronicObserver.ViewModels;
@@ -101,6 +103,13 @@ public partial class App
 			if (args.Exception.StackTrace?.Contains("AvalonDock.Controls.TransformExtensions.TransformActualSizeToAncestor") ?? false)
 			{
 				// hack: ignore the exception when trying to resize the autohide area
+				args.Handled = true;
+				return;
+			}
+
+			if (args.Exception.StackTrace?.Contains("MS.Internal.PointUtil.ScreenToClient(Point pointScreen, PresentationSource presentationSource)") is true)
+			{
+				// hack: this exception is sometime thrown by WPF after moving elements in layout
 				args.Handled = true;
 				return;
 			}
@@ -336,6 +345,7 @@ public partial class App
 			.AddSingleton<BonodereSubmissionService>()
 			.AddSingleton<IClipboardService, ClipboardService>()
 			.AddSingleton<ShipSelectorFactory>()
+			.AddSingleton<ITransportGaugeService, TransportGaugeService>()
 			// issue reporter
 			.AddSingleton<DataAndTranslationIssueReporter>()
 			.AddSingleton<FitBonusIssueReporter>()
@@ -350,6 +360,7 @@ public partial class App
 		Ioc.Default.ConfigureServices(services);
 
 		Ioc.Default.GetRequiredService<DataAndTranslationIssueReporter>();
+		Ioc.Default.GetRequiredService<ITransportGaugeService>();
 	}
 
 	private static Tracker JotTracker()

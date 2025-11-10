@@ -5,9 +5,12 @@ using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using CommunityToolkit.Mvvm.Input;
+using ElectronicObserver.Core.Services.Data;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Core.Types.Extensions;
 using ElectronicObserver.Data;
+using ElectronicObserver.Data.PoiDbSubmission.PoiDbBattleSubmission;
+using ElectronicObserver.Utility;
 using ElectronicObserver.Utility.Data;
 using ElectronicObserver.ViewModels.Translations;
 
@@ -16,12 +19,14 @@ namespace ElectronicObserver.Window.Wpf.Fleet.ViewModels;
 public partial class FleetStatusViewModel : ObservableObject
 {
 	public FormFleetTranslationViewModel FormFleet { get; }
+	public ITransportGaugeService TransportGaugeService { get; } 
 
 	public FleetItemControlViewModel Name { get; } = new();
 	public FleetStateViewModel State { get; } = new();
 	public FleetItemControlViewModel AirSuperiority { get; } = new();
 	public FleetItemControlViewModel SearchingAbility { get; } = new();
 	public FleetItemControlViewModel AntiAirPower { get; } = new();
+	public FleetItemControlViewModel Speed { get; } = new();
 
 	private int FleetId { get; }
 	public int BranchWeight { get; private set; } = 1;
@@ -32,7 +37,8 @@ public partial class FleetStatusViewModel : ObservableObject
 
 	public FleetStatusViewModel(int fleetId)
 	{
-		FormFleet = Ioc.Default.GetService<FormFleetTranslationViewModel>()!;
+		FormFleet = Ioc.Default.GetRequiredService<FormFleetTranslationViewModel>();
+		TransportGaugeService = Ioc.Default.GetRequiredService<ITransportGaugeService>();
 
 		FleetId = fleetId;
 
@@ -53,14 +59,14 @@ public partial class FleetStatusViewModel : ObservableObject
 
 	public void Update(FleetData? fleet)
 	{
-		if (fleet is null) return;
+		if (fleet?.MembersInstance is null) return;
+
+		List<IShipData> members = [.. fleet.MembersInstance!.OfType<IShipData>()];
+
+		int speed = members.Select(s => s.Speed).DefaultIfEmpty(20).Min();
 
 		Name.Text = fleet.Name;
 		{
-			List<IShipData> members = fleet.MembersInstance!
-				.Where(s => s is not null)
-				.ToList();
-
 			int levelSum = members.Sum(s => s.Level);
 
 			int fueltotal = members.Sum(s => Math.Max((int)Math.Floor(s.FuelMax * (s.IsMarried ? 0.85 : 1.00)), 1));
@@ -68,8 +74,6 @@ public partial class FleetStatusViewModel : ObservableObject
 
 			int fuelunit = members.Sum(s => Math.Max((int)Math.Floor(s.FuelMax * 0.2 * (s.IsMarried ? 0.85 : 1.00)), 1));
 			int ammounit = members.Sum(s => Math.Max((int)Math.Floor(s.AmmoMax * 0.2 * (s.IsMarried ? 0.85 : 1.00)), 1));
-
-			int speed = members.Select(s => s.Speed).DefaultIfEmpty(20).Min();
 
 			string supporttype = fleet.SupportType switch
 			{
@@ -83,8 +87,6 @@ public partial class FleetStatusViewModel : ObservableObject
 
 			double expeditionBonus = Calculator.GetExpeditionBonus(fleet);
 			int tp = TpGauge.Normal.GetTp([fleet]);
-			int tankTpE2 = TpGauge.Spring25E2.GetTp([fleet]);
-			int tankTpE5 = TpGauge.Spring25E5.GetTp([fleet]);
 
 			bool hasZeroSlotAircraft = fleet.MembersInstance!
 				.Where(s => s is not null)
@@ -129,10 +131,7 @@ public partial class FleetStatusViewModel : ObservableObject
 				radar.Sum(),
 				radar.Count(i => i > 0),
 				zeroSlotWarning,
-				tankTpE2,
-				(int)(tankTpE2 * 0.7),
-				tankTpE5,
-				(int)(tankTpE5 * 0.7)
+				GetTankTpTooltip(fleet)
 			);
 
 			NightRecons = fleet.NightRecons().TotalRate();
@@ -197,6 +196,24 @@ public partial class FleetStatusViewModel : ObservableObject
 
 			AntiAirPower.ToolTip = sb.ToString();
 		}
+
+		Speed.Text = Constants.GetSpeed(speed);
+		Speed.ToolTip = string.Join("\r\n", members.Select(s => $"{s.Name}：{Constants.GetSpeed(s.Speed)}"));
+	}
+
+	private string GetTankTpTooltip(IFleetData fleet)
+	{
+		if (Configuration.Config.FormFleet.DisplayOnlyCurrentEventTankTp)
+		{
+			return TransportGaugeService.GetCurrentEventLandingOperationToolTip([fleet]);
+		}
+
+		List<TpGauge> gauges = Configuration.Config.FormFleet.TankTpGaugesToDisplay
+			.Where(g => g.ShouldDisplay)
+			.Select(g => g.TpGauge)
+			.ToList();
+
+		return TransportGaugeService.GetEventLandingOperationToolTip([fleet], gauges, true);
 	}
 
 	public void Refresh()

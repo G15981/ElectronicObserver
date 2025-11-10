@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -36,8 +38,8 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 	protected IBrowserHost BrowserHost { get; }
 	protected string? ProxySettings { get; private set; }
 
-	protected Size KanColleSize { get; } = new(1200, 720);
-	protected string KanColleUrl => "https://play.games.dmm.com/game/kancolle";
+	protected static System.Windows.Size KanColleSize { get; } = new(1200, 720);
+	protected static string KanColleUrl => "https://play.games.dmm.com/game/kancolle";
 
 	public bool ZoomFit { get; set; }
 	public string CurrentZoom { get; set; } = "";
@@ -147,12 +149,12 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 						padding: 0,
 						width: 100%,
 						height: 0
-						background: none!important;
+						background: none !important;
 					}
 
 					#main-ntg
 					{
-						margin: 0!important;
+						margin: 0 !important;
 					}
 
 					.gamesResetStyle, gamesResetStyle *
@@ -160,11 +162,20 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 						background: none !important;
 					}
 
+					/* hide ads */
+					.gamesResetStyle > header,
+					.gamesResetStyle > footer,
+					.gamesResetStyle > aside
+					{
+						display: none;
+					}
+
 					#game_frame
 					{
 						--game-frame-width: 1200px;
 						--game-frame-height: 720px;
-						position: absolute;
+						/* has to be fixed to avoid bugs when scrolling before stylesheet loads */
+						position: fixed;
 						top: 0;
 						left: 0;
 					}
@@ -230,20 +241,22 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 			}
 		""";
 
-	protected string DMMScript =>
+	/// <summary>
+	/// The reload dialog gets called as me("エラーが発生したため、ページ更新します。") in PcAggregate.
+	/// "me" is imported as import {w as me, r as fe} from "./zodiosErrorHandling-B0N-1vhS.js";
+	/// In zodiosErrorHandling, the export has "u as w".
+	/// "u" is defined as u = o => window.confirm(o).
+	/// So overriding window.confirm to always return false should suppress the dialog.
+	/// </summary>
+	/// <remarks>todo: Need to test if this script gets executed fast enough to override everything in both CefSharp and WebView2.</remarks>
+	protected string OverrideReloadDialogScript =>
 		"""
-			try
+			Object.defineProperty(window, 'confirm',
 			{
-				if (DMM.netgame.reloadDialog)
-				{
-					DMM.netgame.reloadDialog = function (){};
-				}
-			}
-			catch(e)
-			{
-				// todo: "DMM" doesn't seem to exist anymore so there's always an error here
-				// alert("DMMによるページ更新ダイアログの非表示に失敗しました: " + e);
-			}
+				configurable: true,
+				writable: true,
+				value: function() { return false; }
+			});
 		""";
 
 	protected BrowserViewModel(string host, int port, string culture)
@@ -383,8 +396,6 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 
 	protected abstract void ApplyStyleSheet();
 
-	protected abstract void DestroyDMMreloadDialog();
-
 	protected abstract void TryGetVolumeManager();
 
 	private void VolumeChanged()
@@ -426,7 +437,6 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 		//ロード直後の適用ではレイアウトがなぜか崩れるのでこのタイミングでも適用
 		ApplyStyleSheet();
 		ApplyZoom();
-		DestroyDMMreloadDialog();
 
 		//起動直後はまだ音声が鳴っていないのでミュートできないため、この時点で有効化
 		SetVolumeState();
@@ -501,6 +511,45 @@ public abstract partial class BrowserViewModel : ObservableObject, IBrowser
 	/// </summary>
 	[RelayCommand]
 	protected abstract void Screenshot();
+
+	// no idea if this still works
+	protected Bitmap TwitterDeteriorationBypass(Bitmap image, bool is32bpp)
+	{
+		if (is32bpp)
+		{
+			if (image.PixelFormat != PixelFormat.Format32bppArgb)
+			{
+				Bitmap imgalt = new(image.Width, image.Height, PixelFormat.Format32bppArgb);
+				using (Graphics g = Graphics.FromImage(imgalt))
+				{
+					g.DrawImage(image, new Rectangle(0, 0, imgalt.Width, imgalt.Height));
+				}
+
+				image.Dispose();
+				image = imgalt;
+			}
+
+			// 不透明ピクセルのみだと jpeg 化されてしまうため、1px だけわずかに透明にする
+			Color temp = image.GetPixel(image.Width - 1, image.Height - 1);
+			image.SetPixel(image.Width - 1, image.Height - 1, Color.FromArgb(252, temp.R, temp.G, temp.B));
+		}
+		else
+		{
+			if (image.PixelFormat != PixelFormat.Format24bppRgb)
+			{
+				Bitmap imgalt = new(image.Width, image.Height, PixelFormat.Format24bppRgb);
+				using (Graphics g = Graphics.FromImage(imgalt))
+				{
+					g.DrawImage(image, new Rectangle(0, 0, imgalt.Width, imgalt.Height));
+				}
+
+				image.Dispose();
+				image = imgalt;
+			}
+		}
+
+		return image;
+	}
 
 	[RelayCommand]
 	private void SetZoom(string? zoomParameter)
