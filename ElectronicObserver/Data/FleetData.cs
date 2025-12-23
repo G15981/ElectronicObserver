@@ -2,11 +2,12 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using ElectronicObserver.Core;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Core.Types.Data;
 using ElectronicObserver.Core.Types.Extensions;
+using ElectronicObserver.Core.Types.Mocks;
 using ElectronicObserver.Utility.Data;
-using ElectronicObserver.Utility.Mathematics;
 
 namespace ElectronicObserver.Data;
 
@@ -32,7 +33,7 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 	/// 遠征状態
 	/// 0=未出撃, 1=遠征中, 2=遠征帰投, 3=強制帰投中
 	/// </summary>
-	public int ExpeditionState { get; internal set; }
+	public ExpeditionState ExpeditionState { get; internal set; }
 
 	/// <summary>
 	/// 遠征先ID
@@ -132,7 +133,7 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 
 				Name = (string)RawData.api_name;
 				_members = (int[])RawData.api_ship;
-				ExpeditionState = (int)RawData.api_mission[0];
+				ExpeditionState = (ExpeditionState)RawData.api_mission[0];
 				ExpeditionDestination = (int)RawData.api_mission[1];
 				ExpeditionTime = DateTimeHelper.FromAPITime((long)RawData.api_mission[2]);
 
@@ -157,7 +158,7 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 
 				Name = (string)RawData.api_name;
 				_members = (int[])RawData.api_ship;
-				ExpeditionState = (int)RawData.api_mission[0];
+				ExpeditionState = (ExpeditionState)RawData.api_mission[0];
 				ExpeditionDestination = (int)RawData.api_mission[1];
 				ExpeditionTime = DateTimeHelper.FromAPITime((long)RawData.api_mission[2]);
 				break;
@@ -229,10 +230,19 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 
 					}
 
+					// 随伴艦一括解除を除く
+					if (shipID != -2)
+					{
+						if (IsFlagshipRepairShip)
+						{
+							KCDatabase.Instance.Fleet.StartAnchorageRepairingTimer();
+						}
 
-					if (shipID != -2 && IsFlagshipRepairShip)        //随伴艦一括解除を除く
-						KCDatabase.Instance.Fleet.StartAnchorageRepairingTimer();
-
+						if (HasNosakiSparklePosition)
+						{
+							KCDatabase.Instance.Fleet.StartHomePortSupplyTimer();
+						}
+					}
 				}
 				else
 				{
@@ -246,12 +256,23 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 							{
 
 								if (replacedID != -1)
+								{
 									_members[i] = replacedID;
+								}
 								else
+								{
 									RemoveShip(i);
+								}
 
 								if (IsFlagshipRepairShip)
+								{
 									KCDatabase.Instance.Fleet.StartAnchorageRepairingTimer();
+								}
+
+								if (HasNosakiSparklePosition)
+								{
+									KCDatabase.Instance.Fleet.StartHomePortSupplyTimer();
+								}
 
 								break;
 							}
@@ -299,7 +320,7 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 			break;
 
 			case "api_req_mission/start":
-				ExpeditionState = 1;
+				ExpeditionState = ExpeditionState.OnExpedition;
 				ExpeditionDestination = int.Parse(data["api_mission_id"]);
 				ExpeditionTime = DateTime.Now;  //暫定処理。実際の更新はResponseで行う
 
@@ -426,36 +447,36 @@ public class FleetData : APIWrapper, IIdentifiable, IFleetData
 	/// <summary>
 	/// 旗艦が工作艦か
 	/// </summary>
-	public bool IsFlagshipRepairShip
-	{
-		get
-		{
-			ShipData flagship = KCDatabase.Instance.Ships[_members[0]];
-			return flagship != null && flagship.MasterShip.ShipType == ShipTypes.RepairShip;
-		}
-	}
+	public bool IsFlagshipRepairShip => KCDatabase.Instance.Ships[_members[0]]?.MasterShip.ShipType is ShipTypes.RepairShip;
+
+	private bool HasNosakiSparklePosition => MembersInstance
+		?.Take(2)
+		.Any(s => s?.MasterShip.ShipId is ShipId.Nosaki or ShipId.NosakiKai)
+		?? false;
 
 	/// <summary>
 	/// 泊地修理が発動可能か
 	/// </summary>
-	public bool CanAnchorageRepair
-	{
-		get
-		{
-			// 流石に資源チェックまではしない
-			return CanAnchorageRepairWithMember(MembersInstance);
-		}
-	}
+	public bool CanAnchorageRepair => CanAnchorageRepairWithMember(MembersInstance);
 
-	public static bool CanAnchorageRepairWithMember(IEnumerable<IShipData> membersInstance)
+	// 流石に資源チェックまではしない
+	public static bool CanAnchorageRepairWithMember(IEnumerable<IShipData?>? membersInstance)
 	{
-		var flagship = membersInstance.FirstOrDefault();
-		return flagship?.MasterShip?.ShipType == ShipTypes.RepairShip &&
-			   flagship.HPRate > 0.5 &&
-			   flagship.RepairingDockID == -1 &&
-			   membersInstance.All(s => s == null || (KCDatabase.Instance.Fleet[s.Fleet]?.ExpeditionState ?? 0) == 0) &&
-			   membersInstance.Take(2 + flagship.SlotInstance.Count(eq => eq?.MasterEquipment?.CategoryType == EquipmentTypes.RepairFacility))
-				   .Any(ship => ship?.RepairingDockID == -1 && 0.5 < ship.HPRate && ship.HPRate < 1.0);
+		if (membersInstance == null) return false;
+
+		bool anyShipOnExpedition = membersInstance
+			.OfType<IShipData>()
+			.Any(s => KCDatabase.Instance.Fleet[s.Fleet]?.ExpeditionState is not ExpeditionState.NotDeployed);
+
+		if (anyShipOnExpedition) return false;
+
+		FleetDataMock fleet = new()
+		{
+			ExpeditionState = ExpeditionState.NotDeployed,
+			MembersInstance = new([.. membersInstance]),
+		};
+
+		return fleet.CanAnchorageRepair();
 	}
 
 

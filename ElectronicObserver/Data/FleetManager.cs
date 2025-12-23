@@ -20,9 +20,14 @@ public class FleetManager : APIWrapper
 	public FleetType CombinedFlag { get; internal set; }
 
 	/// <summary>
-	/// 泊地修理タイマ
+	/// 泊地修理タイマー
 	/// </summary>
 	public DateTime AnchorageRepairingTimer { get; private set; }
+
+	/// <summary>
+	/// 泊地修理タイマー
+	/// </summary>
+	public DateTime HomePortSupplyTimer { get; private set; }
 
 
 
@@ -71,6 +76,7 @@ public class FleetManager : APIWrapper
 	{
 		Fleets = new IDDictionary<FleetData>();
 		AnchorageRepairingTimer = DateTime.MinValue;
+		HomePortSupplyTimer = DateTime.MinValue;
 
 		ConditionPredictMin = 0;
 		ConditionPredictMax = ConditionHealingSpan.TotalSeconds * 2;
@@ -160,11 +166,19 @@ public class FleetManager : APIWrapper
 		// 泊地修理・コンディションの処理
 		if (apiname == "api_port/port")
 		{
+			if ((DateTime.Now - HomePortSupplyTimer).TotalMinutes >= 15)
+			{
+				StartHomePortSupplyTimer();
+			}
 
 			if ((DateTime.Now - AnchorageRepairingTimer).TotalMinutes >= 20)
+			{
 				StartAnchorageRepairingTimer();
+			}
 			else
+			{
 				CheckAnchorageRepairingHealing();
+			}
 
 			UpdateConditionPrediction();
 		}
@@ -224,15 +238,20 @@ public class FleetManager : APIWrapper
 
 
 	/// <summary>
-	/// 泊地修理タイマを現在時刻にセットします。
+	/// 泊地修理タイマーを現在時刻にセットします。
 	/// </summary>
 	public void StartAnchorageRepairingTimer()
 	{
 		AnchorageRepairingTimer = DateTime.Now;
 	}
 
+	public void StartHomePortSupplyTimer()
+	{
+		HomePortSupplyTimer = DateTime.Now;
+	}
+
 	/// <summary>
-	/// 泊地修理による回復が発生していたかをチェックし、発生していた場合は泊地修理タイマをリセットします。
+	/// 泊地修理による回復が発生していたかをチェックし、発生していた場合は泊地修理タイマーをリセットします。
 	/// </summary>
 	public void CheckAnchorageRepairingHealing()
 	{

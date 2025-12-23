@@ -13,6 +13,7 @@ using ElectronicObserver.Core.Services.Data;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Core.Types.Extensions;
 using ElectronicObserver.Core.Types.Serialization.DeckBuilder;
+using ElectronicObserver.Data.PoiDbSubmission.PoiDbBattleSubmission;
 using ElectronicObserver.Services;
 using ElectronicObserver.Utility;
 using ElectronicObserver.ViewModels;
@@ -332,7 +333,7 @@ public partial class FleetImageGeneratorViewModel : WindowViewModelBase
 		ForegroundColor = (Color)ColorConverter.ConvertFromString(Configuration.Config.FleetImageGenerator.ForegroundColor);
 		BackgroundColor = (Color)ColorConverter.ConvertFromString(Configuration.Config.FleetImageGenerator.BackgroundColor);
 		BackgroundImagePath = Configuration.Config.FleetImageGenerator.Argument.BackgroundImagePath;
-		TankTpGauge = Configuration.Config.FleetImageGenerator.TankTpGauge;
+		TankTpGauge = Configuration.Config.FleetImageGenerator.TankTpGaugeToDisplay;
 	}
 
 	private void SaveConfig()
@@ -382,7 +383,7 @@ public partial class FleetImageGeneratorViewModel : WindowViewModelBase
 		Configuration.Config.FleetImageGenerator.ForegroundColor = ForegroundColor.ToString();
 		Configuration.Config.FleetImageGenerator.BackgroundColor = BackgroundColor.ToString();
 		Configuration.Config.FleetImageGenerator.Argument.BackgroundImagePath = BackgroundImagePath ?? "";
-		Configuration.Config.FleetImageGenerator.TankTpGauge = TankTpGauge;
+		Configuration.Config.FleetImageGenerator.TankTpGaugeToDisplay = TankTpGauge;
 	}
 
 	/// <inheritdoc />
@@ -477,10 +478,10 @@ public partial class FleetImageGeneratorViewModel : WindowViewModelBase
 
 	private void LoadAirBases(FleetImageGeneratorImageDataModel model)
 	{
-		AirBases = model.DeckBuilderData
-			.GetAirBaseList()
-			.Where(a => a is not null)
-			.Select(a => new AirBaseViewModel().Initialize(a))
+		List<IBaseAirCorpsData> allBases = model.DeckBuilderData.GetAirBaseList().OfType<IBaseAirCorpsData>().ToList();
+
+		AirBases = allBases
+			.Select(a => new AirBaseViewModel().Initialize(a, allBases))
 			.ToObservableCollection();
 	}
 
@@ -507,10 +508,10 @@ public partial class FleetImageGeneratorViewModel : WindowViewModelBase
 
 		if (data is null) return;
 
-		AirBases = data
-			.GetAirBaseList()
-			.Where(a => a is not null)
-			.Select(a => new AirBaseViewModel().Initialize(a))
+		List<IBaseAirCorpsData> allBases = data.GetAirBaseList().OfType<IBaseAirCorpsData>().ToList();
+
+		AirBases = allBases
+			.Select(a => new AirBaseViewModel().Initialize(a, allBases))
 			.ToObservableCollection();
 	}
 

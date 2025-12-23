@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using BrowserLibCore;
 using DynaJson;
 using ElectronicObserver.Avalonia.Services;
+using ElectronicObserver.Core;
 using ElectronicObserver.Core.Services;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Data.DiscordRPC;
@@ -1015,9 +1016,11 @@ public sealed class Configuration
 			public int AirSuperiorityMethod { get; set; }
 
 			/// <summary>
-			/// 泊地修理タイマを表示するか
+			/// 泊地修理タイマーを表示するか
 			/// </summary>
 			public bool ShowAnchorageRepairingTimer { get; set; }
+
+			public bool ShowHomePortSupplyTimer { get; set; }
 
 			/// <summary>
 			/// タイマー完了時に点滅させるか
@@ -1105,6 +1108,7 @@ public sealed class Configuration
 				ShowAircraftLevelByNumber = false;
 				AirSuperiorityMethod = 1;
 				ShowAnchorageRepairingTimer = true;
+				ShowHomePortSupplyTimer = true;
 				BlinkAtCompletion = true;
 				ShowConditionIcon = true;
 				FixedShipNameWidth = 40;
@@ -1874,7 +1878,7 @@ public sealed class Configuration
 			public bool UseCustomTheme { get; set; }
 			public string ForegroundColor { get; set; }
 			public string BackgroundColor { get; set; }
-			public TpGauge TankTpGauge { get; set; } = 0;
+			public TpGauge TankTpGaugeToDisplay { get; set; } = 0;
 
 			public ConfigFleetImageGenerator()
 				: base()

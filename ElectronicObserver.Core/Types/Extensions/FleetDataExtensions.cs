@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 namespace ElectronicObserver.Core.Types.Extensions;
+
 public static class FleetDataExtensions
 {
 	public static int NumberOfSurfaceShipNotRetreatedNotSunk(this IFleetData fleet) =>
@@ -209,5 +210,211 @@ public static class FleetDataExtensions
 			],
 			_ => [],
 		};
+	}
+
+	/// <summary>
+	/// Returns the maximum amount of ships that can be repaired, regardless if the ships in fleet can actually be repaired.
+	/// </summary>
+	public static int GetAnchorageRepairCount(this IFleetData fleet)
+	{
+		if (fleet.ExpeditionState is not ExpeditionState.NotDeployed) return 0;
+		if (fleet.MembersInstance.FirstOrDefault() is not IShipData flagship) return 0;
+		if (flagship.MasterShip.ShipType is not ShipTypes.RepairShip) return 0;
+		if (flagship.DamageState <= DamageState.Medium) return 0;
+		if (flagship.RepairingDockID is not -1) return 0;
+
+		int repairCount = flagship.MasterShip.ShipId switch
+		{
+			ShipId.Akashi or ShipId.AkashiKai => 2,
+			_ => 0,
+		};
+
+		List<IShipData> repairShips = fleet.MembersInstance
+			.Take(2)
+			.OfType<IShipData>()
+			.Where(s => s.MasterShip.ShipType is ShipTypes.RepairShip)
+			.Where(s => s.DamageState > DamageState.Medium)
+			.ToList();
+
+		if (repairShips.Count > 1)
+		{
+			repairCount++;
+		}
+
+		repairCount += repairShips
+			.SelectMany(s => s.AllSlotInstance)
+			.Count(e => e?.EquipmentId is EquipmentId.RepairFacility_ShipRepairFacility);
+
+		return repairCount;
+	}
+
+	public static bool CanAnchorageRepair(this IFleetData fleet)
+	{
+		int count = fleet.GetAnchorageRepairCount();
+
+		return fleet.MembersInstance
+			.Take(count)
+			.OfType<IShipData>()
+			.Where(s => s.RepairingDockID == -1)
+			.Any(s => s is { DamageState: > DamageState.Medium, HPRate: < 1 });
+	}
+
+	public static double GetAnchorageRepairTimeModifier(this IFleetData fleet)
+	{
+		List<IShipData> repairShips = fleet.MembersInstance
+			.Take(2)
+			.OfType<IShipData>()
+			.Where(s => s.MasterShip.ShipType is ShipTypes.RepairShip)
+			.Where(s => s.DamageState > DamageState.Medium)
+			.ToList();
+
+		if (repairShips.Count < 2) return 1;
+		if (!repairShips[1].AllSlotInstance.Any(e => e?.EquipmentId is EquipmentId.RepairFacility_ShipRepairFacility)) return 1;
+
+		return 0.85;
+	}
+
+	public static Dictionary<DetectionType, double> GetDetectionProbabilities(this IFleetData fleet)
+	{
+		if (fleet.MembersWithoutEscaped is null) return [];
+
+		int baseValue = 20; // this is just hardcoded in kancolle kai code
+		int basePower = 0; // num1/BasePow in SakutekiInfo
+		int attack = 0; // num2/Attack in SakutekiInfo
+		int aircraftCarrierCount = 0; // num4 in SakutekiInfo
+
+		foreach ((IShipData? ship, int index) in fleet.MembersInstance.Select((s, i) => (s, i)))
+		{
+			if (ship is null) continue;
+			if (ship.IsEscaped(fleet)) continue;
+
+			int positionMod = index switch
+			{
+				0 => 2,
+				1 => 5,
+				_ => 8,
+			};
+
+			basePower += (int)((double)ship.LOSTotal / positionMod);
+
+			if (ship.IsAircraftCarrier())
+			{
+				aircraftCarrierCount++;
+			}
+
+			foreach ((IEquipmentData? equipment, int aircraftCount) in ship.AllSlotInstance.Zip(ship.Aircraft))
+			{
+				if (equipment is null) continue;
+				if (!CountsForDetection(equipment)) continue;
+
+				attack += aircraftCount + ProficiencyBonus(equipment);
+			}
+		}
+
+		if (aircraftCarrierCount > 0)
+		{
+			attack += 20 + aircraftCarrierCount * 10;
+		}
+
+		int finalPower = basePower
+			+ ShipCountBonus(fleet.MembersWithoutEscaped.OfType<IShipData>().Count())
+			- baseValue
+			+ (int)Math.Sqrt(attack * 10.0);
+
+		return GetProbabilities(finalPower, attack);
+
+		static bool CountsForDetection(IEquipmentData equipment) => equipment.MasterEquipment.CategoryType is
+			EquipmentTypes.CarrierBasedRecon or
+			EquipmentTypes.SeaplaneRecon or
+			EquipmentTypes.SeaplaneBomber or
+			EquipmentTypes.FlyingBoat;
+
+		// this code doesn't really make any sense
+		// the if statements look like they should be using slotExp rather than alvPlus
+		// but the code is copied directly from kancolle kai source so...
+		static int ProficiencyBonus(IEquipmentData equipment)
+		{
+			int slotExp = equipment.GetAircraftExp();
+			double alvPlus = Math.Sqrt(slotExp * 0.2);
+
+			if (alvPlus >= 25.0)
+			{
+				alvPlus += 5.0;
+			}
+
+			if (alvPlus >= 55.0)
+			{
+				alvPlus += 10.0;
+			}
+
+			if (alvPlus >= 100.0)
+			{
+				alvPlus += 15.0;
+			}
+
+			return (int)alvPlus;
+		}
+
+		static int ShipCountBonus(int count) => count switch
+		{
+			>= 6 => 4,
+			5 => 3,
+			4 => 2,
+			3 => 1,
+			_ => 0,
+		};
+
+		static Dictionary<DetectionType, double> GetProbabilities(int num1, int attack)
+			=> attack switch
+			{
+				0 => GetProbabilitiesNoPlane(num1),
+				_ => GetProbabilitiesPlane(num1),
+			};
+
+		static Dictionary<DetectionType, double> GetProbabilitiesNoPlane(int num1)
+		{
+			Dictionary<DetectionType, double> probabilities = [];
+
+			if (num1 <= 0)
+			{
+				probabilities.Add(DetectionType.FailureNoPlane, 1.0);
+				return probabilities;
+			}
+
+			double successRate = num1 / 20.0;
+
+			probabilities.Add(DetectionType.SuccessNoPlane, successRate);
+
+			if (successRate < 1)
+			{
+				probabilities.Add(DetectionType.FailureNoPlane, 1 - successRate);
+			}
+
+			return probabilities;
+		}
+
+		static Dictionary<DetectionType, double> GetProbabilitiesPlane(int num1)
+		{
+			Dictionary<DetectionType, double> probabilities = [];
+
+			if (num1 <= 0)
+			{
+				// can be DetectionType.Failure based on enemy air power
+				probabilities.Add(DetectionType.NoReturn, 1.0);
+				return probabilities;
+			}
+
+			double successRate = num1 / 20.0;
+
+			// can be DetectionType.SuccessNoReturn based on enemy air power
+			probabilities.Add(DetectionType.Success, successRate);
+
+			if (successRate < 1)
+			{
+				probabilities.Add(DetectionType.NoReturn, 1 - successRate);
+			}
+
+			return probabilities;
+		}
 	}
 }

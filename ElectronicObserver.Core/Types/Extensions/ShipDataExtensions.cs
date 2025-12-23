@@ -152,6 +152,9 @@ public static class ShipDataExtensions
 	public static bool HasDrum(this IShipData ship) => ship.AllSlotInstance
 		.Any(e => e?.MasterEquipment.CategoryType == EquipmentTypes.TransportContainer);
 
+	public static bool HasDeuxGun(this IShipData ship) => ship.AllSlotInstance
+		.Any(e => e?.EquipmentId == EquipmentId.MainGunLarge_38cmQuadrupleGunMountKaiDeux);
+
 	public static bool IsPt(this IShipDataMaster ship) => ship.ShipID is
 		1637 or
 		1638 or
@@ -697,5 +700,23 @@ public static class ShipDataExtensions
 
 			masterShip = masterShip.RemodelAfterShip;
 		}
+	}
+
+	public static bool IsEscaped(this IShipData ship, IFleetData fleet)
+		=> fleet.EscapedShipList.Contains(ship.MasterID);
+
+	/// <summary>
+	/// HP を 1 回復するために必要な入渠時間を求めます。
+	/// </summary>
+	public static TimeSpan CalculateDockingUnitTime(this IShipData ship)
+	{
+		int damage = ship.HPMax - ship.HPCurrent;
+
+		if (damage == 0)
+		{
+			return TimeSpan.Zero;
+		}
+
+		return new TimeSpan(DateTimeHelper.FromAPITimeSpan(ship.RepairTime).Add(TimeSpan.FromSeconds(-30)).Ticks / damage);
 	}
 }

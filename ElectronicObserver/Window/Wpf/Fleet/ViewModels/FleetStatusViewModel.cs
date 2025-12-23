@@ -9,7 +9,6 @@ using ElectronicObserver.Core.Services.Data;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Core.Types.Extensions;
 using ElectronicObserver.Data;
-using ElectronicObserver.Data.PoiDbSubmission.PoiDbBattleSubmission;
 using ElectronicObserver.Utility;
 using ElectronicObserver.Utility.Data;
 using ElectronicObserver.ViewModels.Translations;
@@ -19,7 +18,7 @@ namespace ElectronicObserver.Window.Wpf.Fleet.ViewModels;
 public partial class FleetStatusViewModel : ObservableObject
 {
 	public FormFleetTranslationViewModel FormFleet { get; }
-	public ITransportGaugeService TransportGaugeService { get; } 
+	public ITransportGaugeService TransportGaugeService { get; }
 
 	public FleetItemControlViewModel Name { get; } = new();
 	public FleetStateViewModel State { get; } = new();
@@ -57,11 +56,12 @@ public partial class FleetStatusViewModel : ObservableObject
 		Update(KCDatabase.Instance.Fleet[FleetId]);
 	}
 
-	public void Update(FleetData? fleet)
+	public void Update(IFleetData fleet)
 	{
-		if (fleet?.MembersInstance is null) return;
+		if (fleet.Members is null) return;
+		if (fleet.MembersInstance is null) return;
 
-		List<IShipData> members = [.. fleet.MembersInstance!.OfType<IShipData>()];
+		List<IShipData> members = [.. fleet.MembersInstance.OfType<IShipData>()];
 
 		int speed = members.Select(s => s.Speed).DefaultIfEmpty(20).Min();
 
@@ -176,6 +176,19 @@ public partial class FleetStatusViewModel : ObservableObject
 				foreach ((int accuracy, double probability) in probSelect.OrderBy(p => p.Key))
 				{
 					sb.AppendFormat(FormFleet.ContactProbability + "\r\n", accuracy, probability);
+				}
+			}
+
+			Dictionary<DetectionType, double> detectionProbabilities = fleet.GetDetectionProbabilities();
+
+			if (detectionProbabilities.Count > 0)
+			{
+				sb.AppendLine();
+				sb.AppendLine($"{FleetResources.SearchingPhase}：");
+
+				foreach ((DetectionType detectionType, double probability) in detectionProbabilities)
+				{
+					sb.AppendLine($"・{Constants.GetSearchingResult(detectionType)}：{probability:P0}");
 				}
 			}
 
