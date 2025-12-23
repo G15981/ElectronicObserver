@@ -14,7 +14,12 @@
 	TextElement.Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Window}}"
 	mc:Ignorable="d"
 	>
-	<ContentPresenter Content="{Binding CurrentViewModel}" DataContext="{Binding ViewModel, ElementName=CompassControl}">
+	<ScrollViewer
+        VerticalScrollBarVisibility="Auto"
+        HorizontalScrollBarVisibility="Auto"
+		PreviewMouseWheel="ScrollViewer_PreviewMouseWheel">
+
+		<ContentPresenter Content="{Binding CurrentViewModel}" DataContext="{Binding ViewModel, ElementName=CompassControl}">
 		<ContentPresenter.ContentTemplateSelector>
 			<local:CompassTemplateSelector>
 				<local:CompassTemplateSelector.EmptyTemplate>
@@ -56,4 +61,5 @@
 			</local:CompassTemplateSelector>
 		</ContentPresenter.ContentTemplateSelector>
 	</ContentPresenter>
+	</ScrollViewer>
 </UserControl>
