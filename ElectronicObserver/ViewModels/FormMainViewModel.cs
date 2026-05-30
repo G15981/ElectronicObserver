@@ -78,8 +78,7 @@ using ElectronicObserver.Window.Wpf.SenkaLeaderboard;
 using AvalonDock.Controls;
 using ElectronicObserver.Core;
 using ElectronicObserver.Core.Types;
-
-
+using ElectronicObserver.Window.Dialog.UiBlocker;
 
 #if DEBUG
 using System.Text.Encodings.Web;
@@ -93,6 +92,7 @@ public partial class FormMainViewModel : ObservableObject
 	private FormMainWpf Window { get; }
 	private DockingManager DockingManager { get; }
 	private Configuration.ConfigurationData Config { get; }
+	private UiBlockerManagerViewModel UiBlockerManager { get; }
 	public FormMainTranslationViewModel FormMain { get; }
 	private ToolService ToolService { get; }
 	private FileService FileService { get; }
@@ -196,9 +196,10 @@ public partial class FormMainViewModel : ObservableObject
 		DockingManager = dockingManager;
 
 		Config = Configuration.Config;
-		FormMain = Ioc.Default.GetService<FormMainTranslationViewModel>()!;
-		ToolService = Ioc.Default.GetService<ToolService>()!;
-		FileService = Ioc.Default.GetService<FileService>()!;
+		UiBlockerManager = new(new(DockingManager, Config), Config);
+		FormMain = Ioc.Default.GetRequiredService<FormMainTranslationViewModel>();
+		ToolService = Ioc.Default.GetRequiredService<ToolService>();
+		FileService = Ioc.Default.GetRequiredService<FileService>();
 
 		CultureInfo cultureInfo = new(Configuration.Config.UI.Culture);
 
@@ -399,7 +400,7 @@ public partial class FormMainViewModel : ObservableObject
 		Position.Left = window.Left;
 		Position.Height = window.Height;
 		Position.Width = window.Width;
-		Position.WindowState = window.WindowState;
+		Position.WindowState = window.EffectiveWindowStateForPersistence;
 
 		File.WriteAllText(PositionPath, JsonSerializer.Serialize(Position, new JsonSerializerOptions()
 		{
@@ -898,6 +899,13 @@ public partial class FormMainViewModel : ObservableObject
 	private void OpenExpeditionCalculator()
 	{
 		new ExpeditionCalculatorWindow(new()).Show();
+	}
+
+	[RelayCommand]
+	private void OpenUiBlockerManager()
+	{
+		UiBlockerWindow blocker = new(UiBlockerManager);
+		blocker.Show(Window);
 	}
 
 	[RelayCommand]
@@ -1578,6 +1586,37 @@ public partial class FormMainViewModel : ObservableObject
 	}
 
 	[RelayCommand]
+	private void GenerateShipClassEnum()
+	{
+		static string CleanName(ShipClass shipClass, ShipId shipId)
+		{
+			string className = Constants
+				.GetShipClass(shipClass, shipId)
+				.Replace(" ", "")
+				.Replace("(", "")
+				.Replace(")", "")
+				.Replace("-", "")
+				.Replace(".", "")
+				.Replace("2nd", "Second");
+
+			if (className.EndsWith("Class", StringComparison.Ordinal))
+			{
+				className = className[..^5];
+			}
+
+			return className;
+		}
+
+		List<string> enumValues = KCDatabase.Instance.MasterShips.Values
+			.OrderBy(s => s.ShipClass)
+			.Select(s => $"{CleanName(s.ShipClassTyped, s.ShipId)} = {(int)s.ShipClassTyped}")
+			.Distinct()
+			.ToList();
+
+		System.Windows.Clipboard.SetText(string.Join(",\n", enumValues));
+	}
+
+	[RelayCommand]
 	private void GenerateEquipmentIdEnum()
 	{
 		static string CleanName(string name) => name
@@ -1662,7 +1701,7 @@ public partial class FormMainViewModel : ObservableObject
 	#region Maintenance timer
 	[RelayCommand]
 	private void OpenMaintenanceInformationLink()
-		=> OpenLink(SoftwareUpdater.LatestVersion.MaintenanceInformationLink);
+		=> OpenLink(SoftwareUpdater.LatestDataVersion.MaintenanceInformationLink);
 	#endregion
 
 	private void CallPumpkinHead(string apiname, dynamic data)
@@ -1795,7 +1834,7 @@ public partial class FormMainViewModel : ObservableObject
 		DateTime now = DateTimeHelper.GetJapanStandardTimeNow();
 
 		MaintenanceText = GetMaintenanceText(FormMain, now);
-		UpdateAvailable = SoftwareInformation.UpdateTime < SoftwareUpdater.LatestVersion.BuildDate;
+		UpdateAvailable = SoftwareInformation.UpdateTime < SoftwareUpdater.LatestDataVersion.BuildDate;
 
 		DownloadProgressString = SoftwareUpdater.DownloadProgressString;
 
@@ -1883,10 +1922,10 @@ public partial class FormMainViewModel : ObservableObject
 	private static string GetMaintenanceText(FormMainTranslationViewModel formMain, DateTime now)
 	{
 		TimeSpan maintTimer = new(0);
-		MaintenanceState eventState = SoftwareUpdater.LatestVersion.EventState;
+		MaintenanceState eventState = SoftwareUpdater.LatestDataVersion.EventState;
 
-		DateTime maintStartDate = SoftwareUpdater.LatestVersion.MaintenanceStart;
-		DateTime? maintEndDate = SoftwareUpdater.LatestVersion.MaintenanceEnd;
+		DateTime maintStartDate = SoftwareUpdater.LatestDataVersion.MaintenanceStart;
+		DateTime? maintEndDate = SoftwareUpdater.LatestDataVersion.MaintenanceEnd;
 
 		if (eventState != MaintenanceState.None)
 		{

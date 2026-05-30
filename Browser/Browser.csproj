@@ -25,9 +25,9 @@
 		<Copyright>Copyright ©  2015 Andante</Copyright>
 		<Trademark />
 		<Culture />
-		<AssemblyVersion>5.3.21.0</AssemblyVersion>
-		<FileVersion>5.3.21.0</FileVersion>
-		<Version>5.3.21.0</Version>
+		<AssemblyVersion>5.4.0.0</AssemblyVersion>
+		<FileVersion>5.4.0.0</FileVersion>
+		<Version>5.4.0.0</Version>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -39,7 +39,6 @@
 		  <PrivateAssets>all</PrivateAssets>
 		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
-		<PackageReference Include="CefSharp.WinForms.NETCore" Version="124.3.50" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="Grpc" Version="2.46.6" />
 		<PackageReference Include="Grpc.Core" Version="2.46.6" />
@@ -50,8 +49,8 @@
 		<PackageReference Include="MagicOnion.Abstractions" Version="3.0.13" />
 		<PackageReference Include="MessagePack" Version="3.1.4" />
 		<PackageReference Include="MessagePack.Annotations" Version="3.1.4" />
-		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.1" />
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.1" />
+		<PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.2" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.2" />
 		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3650.58" />
 		<PackageReference Include="Microsoft.Web.WebView2.DevToolsProtocolExtension" Version="1.0.2901" />
 		<PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
@@ -59,7 +58,7 @@
 		<PackageReference Include="PropertyChanged.Fody" Version="4.1.0" PrivateAssets="All" />
 		<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
 		<PackageReference Include="System.Runtime.InteropServices" Version="4.3.0" />
-		<PackageReference Include="System.Text.Json" Version="10.0.1" />
+		<PackageReference Include="System.Text.Json" Version="10.0.2" />
 		<PackageReference Include="Titanium.Web.Proxy" Version="3.2.0" />
 	</ItemGroup>
 
@@ -87,13 +86,4 @@
 	<Target Name="PostPublish" AfterTargets="Publish">
 		<Exec Command="cd $(MSBuildProjectDirectory)&#xD;&#xA;cd ..\ElectronicObserver\bin\x64\publish\&#xD;&#xA;del vk_swiftshader.dll&#xD;&#xA;del vk_swiftshader_icd.json&#xD;&#xA;del vulkan-1.dll" />
 	</Target>
-	<ItemGroup>
-	  <PackageReference Update="chromiumembeddedframework.runtime.win-arm64" Version="124.3.5" />
-	</ItemGroup>
-	<ItemGroup>
-	  <PackageReference Update="chromiumembeddedframework.runtime.win-x64" Version="124.3.5" />
-	</ItemGroup>
-	<ItemGroup>
-	  <PackageReference Update="chromiumembeddedframework.runtime.win-x86" Version="124.3.5" />
-	</ItemGroup>
 </Project>

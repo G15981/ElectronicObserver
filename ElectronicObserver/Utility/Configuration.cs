@@ -20,6 +20,8 @@ using ElectronicObserver.Resource.Record;
 using ElectronicObserver.Utility.Mathematics;
 using ElectronicObserver.Utility.Storage;
 using ElectronicObserver.Window.Control;
+using ElectronicObserver.Window.Dialog.UiBlocker;
+using ElectronicObserver.Window.Dialog.UiBlocker.Taiha;
 using ElectronicObserver.Window.Settings.SubWindow.Fleet;
 
 namespace ElectronicObserver.Utility;
@@ -593,6 +595,18 @@ public sealed class Configuration
 			/// </summary>
 			public bool ShowSpoiler { get; set; }
 
+			public bool ShowDropSpoiler { get; set; }
+
+			public bool ShowExpeditionSpoiler { get; set; }
+
+			public bool ShowDevelopmentSpoiler { get; set; }
+
+			public bool ShowEquipmentImprovementSpoiler { get; set; }
+
+			public bool ShowModernizationSpoiler { get; set; }
+
+			public bool ShowConstructionSpoiler { get; set; }
+
 			/// <summary>
 			/// プレイ時間
 			/// </summary>
@@ -621,6 +635,12 @@ public sealed class Configuration
 				SaveErrorReport = true;
 				FileEncodingID = 4;
 				ShowSpoiler = true;
+				ShowDropSpoiler = true;
+				ShowExpeditionSpoiler = true;
+				ShowDevelopmentSpoiler = true;
+				ShowEquipmentImprovementSpoiler = true;
+				ShowModernizationSpoiler = true;
+				ShowConstructionSpoiler = true;
 				PlayTime = 0;
 				PlayTimeIgnoreInterval = 10 * 60;
 				SaveBattleLog = false;
@@ -817,6 +837,11 @@ public sealed class Configuration
 			public bool TopMost { get; set; }
 
 			/// <summary>
+			/// 最小化時の動作
+			/// </summary>
+			public int MinimizeBehavior { get; set; }
+
+			/// <summary>
 			/// レイアウトファイルのパス
 			/// </summary>
 			public string LayoutFilePath { get; set; }
@@ -852,6 +877,7 @@ public sealed class Configuration
 			{
 				ConfirmOnClosing = true;
 				TopMost = false;
+				MinimizeBehavior = 0;
 				LayoutFilePath = @"Settings\WindowLayout.zip";
 				CheckUpdateInformation = true;
 				ShowStatusBar = true;
@@ -1261,8 +1287,6 @@ public sealed class Configuration
 		/// </summary>
 		public class ConfigFormBrowser : ConfigPartBase
 		{
-			public BrowserOption Browser { get; set; }
-
 			/// <summary>
 			/// ブラウザの拡大率 10-1000(%)
 			/// </summary>
@@ -1377,7 +1401,6 @@ public sealed class Configuration
 
 			public ConfigFormBrowser()
 			{
-				Browser = BrowserOption.CefSharp;
 				ZoomRate = 1;
 				ZoomFit = false;
 				LogInPageURL = @"https://play.games.dmm.com/game/kancolle/";
@@ -1957,7 +1980,8 @@ public sealed class Configuration
 		[DataMember]
 		public ConfigWhitecap Whitecap { get; private set; }
 
-
+		[DataMember]
+		public UiBlockerConfiguration TaihaBlocker { get; private set; }
 
 		[DataMember]
 		public string Version
@@ -2015,6 +2039,15 @@ public sealed class Configuration
 			FleetImageGenerator = new ConfigFleetImageGenerator();
 			DataSubmission = new ConfigDataSubmission();
 			Whitecap = new ConfigWhitecap();
+
+			TaihaBlocker = new()
+			{
+				IsEnabled = true,
+				DesiredTop = TaihaBlockerViewModel.DefaultDesiredTop,
+				DesiredLeft = TaihaBlockerViewModel.DefaultDesiredLeft,
+				DesiredWidth = TaihaBlockerViewModel.DefaultDesiredWidth,
+				DesiredHeight = TaihaBlockerViewModel.DefaultDesiredHeight,
+			};
 
 			VersionUpdateTime = DateTimeHelper.TimeToCSVString(SoftwareInformation.UpdateTime);
 		}

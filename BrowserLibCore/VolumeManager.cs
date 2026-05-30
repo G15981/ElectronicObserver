@@ -2,9 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Management;
 using System.Runtime.InteropServices;
-using System.Threading;
 
 namespace BrowserLibCore;
 
@@ -108,36 +106,13 @@ public class VolumeManager
 	// https://stackoverflow.com/questions/23454396/rpc-e-cantcallout-ininputsynccall-when-trying-to-access-usb-device
 	private static Dictionary<uint, string> GetCommandLine(string processName)
 	{
-		Dictionary<uint, string> processes = new();
+		string search = "--utility-sub-type=audio.mojom.AudioService";
 
-		// this throws if there's problems with WMI
-		// https://github.com/ElectronicObserverEN/ElectronicObserver/issues/231
-		try
-		{
-			Thread thread = new(() =>
-			{
-				string query =
-					"SELECT ProcessId, CommandLine " +
-					"FROM Win32_Process " +
-					$"WHERE Name = \"{processName}\"" +
-					"AND CommandLine LIKE \"%--utility-sub-type=audio.mojom.AudioService%\"";
-
-				using ManagementObjectSearcher searcher = new(query);
-				using ManagementObjectCollection objects = searcher.Get();
-
-				foreach (ManagementBaseObject o in objects)
-				{
-					processes.Add((uint)o["ProcessId"], (string)o["CommandLine"]);
-				}
-			});
-			thread.Start();
-			thread.Join();
-		}
-		catch
-		{
-			// log?
-		}
-		
+		Dictionary<uint, string> processes = Process
+			.GetProcessesByName(processName)
+			.Select(p => (p.Id, CommandLine: p.GetCommandLine() ?? ""))
+			.Where(t => t.CommandLine.Contains(search, StringComparison.OrdinalIgnoreCase))
+			.ToDictionary(t => (uint)t.Id, t => t.CommandLine);
 
 		return processes;
 	}
@@ -165,7 +140,7 @@ public class VolumeManager
 			.ToList();
 		*/
 
-		Dictionary<uint, string> webView2AudioProcessArgs = GetCommandLine($"{processName}.exe");
+		Dictionary<uint, string> webView2AudioProcessArgs = GetCommandLine(processName);
 
 		string? TryGetArgs(uint pid)
 		{
@@ -197,29 +172,6 @@ public class VolumeManager
 	}
 
 	/// <summary>
-	/// 音量操作のためのデータを取得します。 CefSharp
-	/// </summary>
-	/// <param name="processName">対象のプロセス名。</param>
-	/// <returns>データ。取得に失敗した場合は null。</returns>
-	private static ISimpleAudioVolume GetVolumeObject(string processName, out uint processID)
-	{
-		var currentProcess = Process.GetCurrentProcess();
-		var processes = Process.GetProcessesByName(processName).Where(p => GetParentProcess(p)?.Id == currentProcess.Id).ToArray();
-		uint succeededId = 0;
-		var volume = GetVolumeObject(pid =>
-		{
-			if (processes.Any(p => p.Id == pid))
-			{
-				succeededId = pid;
-				return true;
-			}
-			return false;
-		});
-		processID = succeededId;
-		return volume;
-	}
-
-	/// <summary>
 	/// WebView2 implementation.
 	/// </summary>
 	public static VolumeManager? CreateInstanceByProcessName(string processName, string proxySettings)
@@ -233,41 +185,6 @@ public class VolumeManager
 		else
 		{
 			return null;
-		}
-	}
-
-	/// <summary>
-	/// CefSharp implementation.
-	/// </summary>
-	public static VolumeManager CreateInstanceByProcessName(string processName)
-	{
-		var volume = GetVolumeObject(processName, out uint processID);
-		if (volume != null)
-		{
-			Marshal.ReleaseComObject(volume);
-			return new VolumeManager(processID);
-		}
-		else
-		{
-			return null;
-		}
-	}
-
-
-	private static Process? GetParentProcess(Process process)
-	{
-		var pbi = new PROCESS_BASIC_INFORMATION();
-		int status = NtQueryInformationProcess(process.Handle, 0, out pbi, Marshal.SizeOf(pbi), out int returnLength);
-		if (status != 0)
-			throw new System.ComponentModel.Win32Exception(status);
-
-		try
-		{
-			return Process.GetProcessById((int)pbi.InheritedFromUniqueProcessId.ToUInt32());
-		}
-		catch (ArgumentException)
-		{
-			return null;        // process not found
 		}
 	}
 

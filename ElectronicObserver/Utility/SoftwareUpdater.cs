@@ -2,36 +2,39 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Net;
 using System.Net.Http;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using DynaJson;
-using ElectronicObserver.Core;
+using ElectronicObserver.Avalonia.Translation;
+using ElectronicObserver.Core.Types;
 using ElectronicObserver.Data;
-using ElectronicObserver.Data.Translation;
-using ElectronicObserver.Utility.Mathematics;
 using ElectronicObserver.ViewModels.Translations;
 
 namespace ElectronicObserver.Utility;
 
 public class SoftwareUpdater
 {
-	internal static string AppDataFolder =>
-		Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ElectronicObserver");
-
 	private static bool WaitForRestart { get; set; }
-	public static UpdateData CurrentVersion { get; set; } = new UpdateData();
-	public static UpdateData LatestVersion { get; set; } = new UpdateData();
+
+	public static SoftwareUpdateData CurrentDataVersion { get; set; } = new();
+	public static SoftwareUpdateData LatestDataVersion { get; set; } = new();
+
+	public static TranslationUpdateData CurrentTranslationVersion { get; set; } = new();
+	public static TranslationUpdateData LatestTranslationVersion { get; set; } = new();
+
+	private static string CurrentTranslationLanguage => Configuration.Config.UI.Culture switch
+	{
+		// Japanese translations don't exist, so fall back to English
+		"ja-JP" => "en-US",
+		string culture => culture,
+	};
 
 	private static Uri DataUpdateURL => new($"{Configuration.Config.Control.UpdateRepoURL}/update.json");
+	private static Uri TranslationUpdateURL => new($"{Configuration.Config.Control.UpdateRepoURL}/Translations/{CurrentTranslationLanguage}/update.json");
 
-	private static Uri TranslationUpdateURL => new($"{Configuration.Config.Control.UpdateRepoURL}/Translations/{DataAndTranslationManager.CurrentTranslationLanguage}/update.json");
-
-	private static string DataUpdateFile => Path.Combine(DataAndTranslationManager.WorkingFolder, "update.json");
-
-	private static string TranslationUpdateFile => Path.Combine(DataAndTranslationManager.TranslationFolder, "update.json");
+	private static string DataUpdateFile => Path.Join(DataConstants.WorkingFolder, "update.json");
+	private static string TranslationUpdateFile => Path.Join(DataConstants.TranslationFolder(CurrentTranslationLanguage), "update.json");
 
 	public static string DownloadProgressString { get; private set; } = "";
 
@@ -44,10 +47,10 @@ public class SoftwareUpdater
 	{
 		if (WaitForRestart) return;
 
-		if (!Directory.Exists(AppDataFolder))
-			Directory.CreateDirectory(AppDataFolder);
+		if (!Directory.Exists(DataConstants.AppDataFolder))
+			Directory.CreateDirectory(DataConstants.AppDataFolder);
 
-		var url = LatestVersion.AppDownloadUrl;
+		var url = LatestDataVersion.AppDownloadUrl;
 		if (url != string.Empty)
 		{
 			try
@@ -110,59 +113,9 @@ public class SoftwareUpdater
 		{
 			await ReadRemoteAndLocalUpdateData();
 
-			/*if (Configuration.Config.Life.CheckUpdateInformation == true && SoftwareInformation.UpdateTime < LatestVersion.BuildDate)
-			{
-				FormMain.Instance.Update_Available(LatestVersion.AppVersion);
-				UpdateSoftware();
-			}*/
+			List<(string FileName, DataType Type)> downloadList = GetDownloadList();
 
-			List<(string FileName, DataType Type)> downloadList = new();
-			bool needReload = false;
-
-			if (CurrentVersion.Equipment != LatestVersion.Equipment)
-				downloadList.Add(("equipment.json", DataType.Translation));
-
-			if (CurrentVersion.Expedition != LatestVersion.Expedition)
-				downloadList.Add(("expedition.json", DataType.Translation));
-
-			if (CurrentVersion.Destination != LatestVersion.Destination)
-				downloadList.Add((("destination.json", DataType.Data)));
-
-			if (CurrentVersion.Operation != LatestVersion.Operation)
-				downloadList.Add(("operation.json", DataType.Translation));
-
-			if (CurrentVersion.Quest != LatestVersion.Quest)
-				downloadList.Add(("quest.json", DataType.Translation));
-
-			if (CurrentVersion.Ship != LatestVersion.Ship)
-				downloadList.Add(("ship.json", DataType.Translation));
-
-			if (CurrentVersion.QuestTrackers < LatestVersion.QuestTrackers)
-			{
-				downloadList.Add(("QuestTrackers.json", DataType.Data));
-			}
-
-			if (CurrentVersion.EventLocks < LatestVersion.EventLocks)
-			{
-				downloadList.Add(("Locks.json", DataType.Data));
-			}
-
-			if (CurrentVersion.LockTranslations < LatestVersion.LockTranslations)
-			{
-				downloadList.Add(("Locks.json", DataType.Translation));
-			}
-
-			if (CurrentVersion.FitBonuses < LatestVersion.FitBonuses)
-			{
-				downloadList.Add(("FitBonuses.json", DataType.Data));
-			}
-
-			if (CurrentVersion.EquipmentUpgrades < LatestVersion.EquipmentUpgrades)
-			{
-				downloadList.Add(("EquipmentUpgrades.json", DataType.Data));
-			}
-
-			needReload = downloadList.Any();
+			bool needReload = downloadList.Count > 0;
 
 			List<Task> taskList = new();
 
@@ -180,25 +133,73 @@ public class SoftwareUpdater
 
 			if (needReload)
 			{
-				KCDatabase.Instance.Translation.Initialize();
+				await KCDatabase.Instance.Translation.Initialize();
 				KCDatabase.Instance.SystemQuestTrackerManager.Load();
 				Logger.Add(2, SoftwareInformationResources.TranslationFilesUpdated);
 			}
 
-			CurrentVersion = LatestVersion;
-		}
-		catch (JsonParserException e)
-		{
-			// file exist but isn't valid json
-			// file gets corrupted somehow?
-			File.Delete(TranslationUpdateFile);
-			File.Delete(DataUpdateFile);
-			await CheckUpdateAsync();
+			CurrentDataVersion = LatestDataVersion;
+			CurrentTranslationVersion = LatestTranslationVersion;
 		}
 		catch (Exception e)
 		{
 			Logger.Add(3, SoftwareInformationResources.FailedToObtainUpdateData + e);
 		}
+	}
+
+	private static List<(string FileName, DataType Type)> GetDownloadList()
+	{
+		List<(string FileName, DataType Type)> downloadList = [];
+
+		if (CurrentTranslationVersion.Equipment != LatestTranslationVersion.Equipment)
+			downloadList.Add(("equipment.json", DataType.Translation));
+
+		if (CurrentTranslationVersion.Expedition != LatestTranslationVersion.Expedition)
+			downloadList.Add(("expedition.json", DataType.Translation));
+
+		if (CurrentDataVersion.Destination != LatestDataVersion.Destination)
+			downloadList.Add((("destination.json", DataType.Data)));
+
+		if (CurrentTranslationVersion.Operation != LatestTranslationVersion.Operation)
+			downloadList.Add(("operation.json", DataType.Translation));
+
+		if (CurrentTranslationVersion.Quest != LatestTranslationVersion.Quest)
+			downloadList.Add(("quest.json", DataType.Translation));
+
+		if (CurrentTranslationVersion.Ship != LatestTranslationVersion.Ship)
+			downloadList.Add(("ship.json", DataType.Translation));
+
+		if (CurrentDataVersion.QuestTrackers < LatestDataVersion.QuestTrackers)
+		{
+			downloadList.Add(("QuestTrackers.json", DataType.Data));
+		}
+
+		if (CurrentDataVersion.QuestsMetadata < LatestDataVersion.QuestsMetadata)
+		{
+			downloadList.Add(("QuestsMetadata.json", DataType.Data));
+		}
+
+		if (CurrentDataVersion.EventLocks < LatestDataVersion.EventLocks)
+		{
+			downloadList.Add(("Locks.json", DataType.Data));
+		}
+
+		if (CurrentTranslationVersion.LockTranslations < LatestTranslationVersion.LockTranslations)
+		{
+			downloadList.Add(("Locks.json", DataType.Translation));
+		}
+
+		if (CurrentDataVersion.FitBonuses < LatestDataVersion.FitBonuses)
+		{
+			downloadList.Add(("FitBonuses.json", DataType.Data));
+		}
+
+		if (CurrentDataVersion.EquipmentUpgrades < LatestDataVersion.EquipmentUpgrades)
+		{
+			downloadList.Add(("EquipmentUpgrades.json", DataType.Data));
+		}
+
+		return downloadList;
 	}
 
 	/// <summary>
@@ -218,10 +219,7 @@ public class SoftwareUpdater
 
 		if (updateDataReceived)
 		{
-			var jsonData = JsonObject.Parse(dataUpdateData);
-			var jsonTranslations = JsonObject.Parse(translationUpdateData);
-
-			LatestVersion = ParseUpdate(jsonData, jsonTranslations);
+			(LatestDataVersion, LatestTranslationVersion) = ParseUpdate(dataUpdateData, translationUpdateData);
 		}
 
 		bool filesDoesntExist = !File.Exists(DataUpdateFile) || !File.Exists(TranslationUpdateFile);
@@ -231,13 +229,14 @@ public class SoftwareUpdater
 			await File.WriteAllTextAsync(DataUpdateFile, dataUpdateData);
 			await File.WriteAllTextAsync(TranslationUpdateFile, translationUpdateData);
 
-			CurrentVersion = new UpdateData();
+			CurrentDataVersion = new();
+			CurrentTranslationVersion = new();
 		}
 		else
 		{
 			string dataFileContent = File.ReadAllText(DataUpdateFile);
 			string translationFileContent = File.ReadAllText(TranslationUpdateFile);
-			CurrentVersion = ParseUpdate(JsonObject.Parse(dataFileContent), JsonObject.Parse(translationFileContent));
+			(CurrentDataVersion, CurrentTranslationVersion) = ParseUpdate(dataFileContent, translationFileContent);
 		}
 	}
 
@@ -246,7 +245,7 @@ public class SoftwareUpdater
 		try
 		{
 			using HttpClient client = new();
-			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+
 			var url = @"https://raw.githubusercontent.com/ElectronicObserverEN/Data/master/Data/EOUpdater.exe";
 			var updaterFile = AppDomain.CurrentDomain.SetupInformation.ApplicationBase + @"\EOUpdater.exe";
 
@@ -274,14 +273,14 @@ public class SoftwareUpdater
 		try
 		{
 			using HttpClient client = new();
-			string tempFile = AppDataFolder + @"\latest.zip"; ;
-			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+			string tempFile = Path.Join(DataConstants.AppDataFolder, "latest.zip");
+
 			Console.WriteLine(SoftwareInformationResources.DownloadingUpdate);
 
 			Progress<float> progress = new();
 			progress.ProgressChanged += (_, progress) => DownloadProgressString = string.Format(SoftwareDownload.Update_DownloadingUpdate, progress);
 
-			using FileStream file = new(tempFile, FileMode.Create);
+			await using FileStream file = new(tempFile, FileMode.Create);
 			await client.DownloadDataAsync(url, file, progress);
 		}
 		catch (Exception e)
@@ -295,92 +294,30 @@ public class SoftwareUpdater
 		}
 	}
 
-	internal static UpdateData ParseUpdate(dynamic dataJson, dynamic translationJson)
+	private static (SoftwareUpdateData, TranslationUpdateData) ParseUpdate(string dataJson, string translationJson)
 	{
-		var data = new UpdateData();
 		try
 		{
-			DateTime buildDate = DateTimeHelper.CSVStringToTime(dataJson.bld_date);
-			var appVersion = (string)dataJson.ver;
-			var downloadUrl = (string)dataJson.url;
+			SoftwareUpdateData? data = JsonSerializer.Deserialize<SoftwareUpdateData>(dataJson);
+			TranslationUpdateData? translations = JsonSerializer.Deserialize<TranslationUpdateData>(translationJson);
 
-			string apiServerUrl = dataJson.ApiServer() switch
+			if (data is not null && translations is not null)
 			{
-				true => (string)dataJson.ApiServer,
-				_ => "",
-			};
-
-			var eqVersion = (string)translationJson.equipment;
-			var expedVersion = (string)translationJson.expedition;
-			string destVersion = dataJson.nodes.ToString();
-			var opVersion = (string)translationJson.operation;
-			var questVersion = (string)translationJson.quest;
-			var shipVersion = (string)translationJson.ship;
-			int lockTranslationsVersion = (int)translationJson.Locks;
-
-			int fitBonusesVersion = dataJson.FitBonuses() switch
-			{
-				true => (int)dataJson.FitBonuses,
-				_ => 0,
-			};
-
-			int questTrackersVersion = dataJson.QuestTrackers() switch
-			{
-				true => (int)dataJson.QuestTrackers,
-				_ => 0,
-			};
-			int eventLocksVersion = (int)dataJson.Locks;
-
-			int equipmentUpgradesVersion = dataJson.EquipmentUpgrades() switch
-			{
-				true => (int)dataJson.EquipmentUpgrades,
-				_ => 0,
-			};
-
-			DateTime maintenanceStartDate = DateTimeHelper.CSVStringToTime(dataJson.MaintStart);
-
-			DateTime? maintenanceEndDate = dataJson.MaintEnd switch
-			{
-				null => null,
-				_ => DateTimeHelper.CSVStringToTime(dataJson.MaintEnd),
-			};
-
-			var eventState = (MaintenanceState)(int)dataJson.MaintEventState;
-			string maintenanceInformationLink = (string)dataJson.MaintInfoLink;
-
-			data = new UpdateData
-			{
-				BuildDate = buildDate,
-				AppVersion = appVersion,
-				AppDownloadUrl = downloadUrl,
-				AppApiServerUrl = apiServerUrl,
-				Equipment = eqVersion,
-				Expedition = expedVersion,
-				Destination = destVersion,
-				Operation = opVersion,
-				Quest = questVersion,
-				Ship = shipVersion,
-				QuestTrackers = questTrackersVersion,
-				EventLocks = eventLocksVersion,
-				LockTranslations = lockTranslationsVersion,
-				MaintenanceStart = maintenanceStartDate,
-				MaintenanceEnd = maintenanceEndDate,
-				EventState = eventState,
-				FitBonuses = fitBonusesVersion,
-				EquipmentUpgrades = equipmentUpgradesVersion,
-				MaintenanceInformationLink = maintenanceInformationLink
-			};
+				return (data, translations);
+			}
 		}
 		catch (Exception e)
 		{
 			Logger.Add(3, SoftwareInformationResources.FailedToParseUpdateData + e.ToString());
 		}
-		return data;
-	}
 
+		return (new(), new());
+	}
+	
+	
 	private static string GetFullPath(string fileName, DataType type) => type switch
 	{
-		DataType.Translation => Path.Combine("Translations", DataAndTranslationManager.CurrentTranslationLanguage, fileName),
+		DataType.Translation => Path.Combine("Translations", CurrentTranslationLanguage, fileName),
 		DataType.Data => Path.Combine("Data", fileName),
 		DataType.None => fileName,
 	};
@@ -389,7 +326,7 @@ public class SoftwareUpdater
 	{
 		filename = GetFullPath(filename, type);
 
-		string path = Path.Combine(DataAndTranslationManager.WorkingFolder, filename);
+		string path = Path.Combine(DataConstants.WorkingFolder, filename);
 		string url = Path.Combine(Configuration.Config.Control.UpdateRepoURL.AbsoluteUri, filename);
 
 		try
@@ -413,31 +350,3 @@ public class SoftwareUpdater
 		}
 	}
 }
-
-public class UpdateData
-{
-	public DateTime BuildDate { get; set; }
-	public string AppVersion { get; set; } = "0.0.0.0";
-	public string AppDownloadUrl { get; set; } = "";
-	public string AppApiServerUrl { get; set; } = "";
-	public string Equipment { get; set; } = "";
-	public string Expedition { get; set; } = "";
-	public string Destination { get; set; } = "";
-	public string Operation { get; set; } = "";
-	public string Quest { get; set; } = "";
-	public string Ship { get; set; } = "";
-	public int QuestTrackers { get; set; }
-	public int EventLocks { get; set; }
-	public int LockTranslations { get; set; }
-	public int FitBonuses { get; set; }
-	public int EquipmentUpgrades { get; set; }
-	public DateTime MaintenanceStart { get; set; }
-	public DateTime? MaintenanceEnd { get; set; }
-	public string MaintenanceInformationLink { get; set; } = "";
-
-	/// <summary>
-	/// 1=event start, 2=event end, 3=regular maintenance
-	/// </summary>
-	public MaintenanceState EventState { get; set; }
-}
-public enum MaintenanceState { None = 0, EventStart = 1, EventEnd = 2, Regular = 3 };

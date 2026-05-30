@@ -118,6 +118,15 @@ public static class ShipDataExtensions
 	public static bool HasZuiun(this IShipData ship, int count = 1) => ship.AllSlotInstance
 		.Count(e => e.IsZuiun()) >= count;
 
+	public static bool HasJetFighter(this IShipData ship) => ship.AllSlotInstance
+		.Zip(ship.Aircraft, (e, size) => (e, size))
+		.Any(s => s.size > 0 && s.e?.MasterEquipment.CategoryType == EquipmentTypes.JetFighter);
+
+	public static bool HasJetBomber(this IShipData ship, int count = 1) => ship.AllSlotInstance
+		.Zip(ship.Aircraft, (e, size) => (e, size))
+		.Count(s => s.size > 0 && s.e?.MasterEquipment.CategoryType is EquipmentTypes.JetBomber)
+		>= count;
+
 	public static bool HasFighter(this IShipData ship) => ship.AllSlotInstance
 		.Zip(ship.Aircraft, (e, size) => (e, size))
 		.Any(s => s.size > 0 && s.e?.MasterEquipment.CategoryType == EquipmentTypes.CarrierBasedFighter);
@@ -130,12 +139,6 @@ public static class ShipDataExtensions
 	public static bool HasAttacker(this IShipData ship) => ship.AllSlotInstance
 		.Zip(ship.Aircraft, (e, size) => (e, size))
 		.Any(s => s.size > 0 && s.e?.MasterEquipment.CategoryType == EquipmentTypes.CarrierBasedTorpedo);
-
-	public static bool HasJetBomber(this IShipData ship, int count = 1) =>
-		ship.AllSlotInstance
-			.Zip(ship.Aircraft, (e, size) => (e, size))
-			.Count(s => s.size > 0 && s.e?.MasterEquipment.CategoryType is EquipmentTypes.JetBomber)
-		>= count;
 
 	public static bool HasTorpedo(this IShipData ship, int count = 1) => ship.AllSlotInstance
 		.Count(e => e?.MasterEquipment.IsTorpedo == true) >= count;
@@ -193,9 +196,6 @@ public static class ShipDataExtensions
 	public static bool HasNightAircraft(this IShipData ship, int count = 1) => ship.AllSlotInstance
 		.Count(e => e?.MasterEquipment.IsNightAircraft == true || e?.IsNightCapableAircraft() == true)
 		>= count;
-
-	public static bool HasNightPhototubePlane(this IShipData ship) => ship.AllSlotInstance
-		.Any(e => e?.EquipmentId == EquipmentId.CarrierBasedBomber_SuiseiModel12_wType31PhotoelectricFuzeBombs);
 
 	public static bool HasSwordfish(this IShipData ship) => ship.AllSlotInstance
 		.Any(e => e?.MasterEquipment.IsSwordfish ?? false);
@@ -418,8 +418,8 @@ public static class ShipDataExtensions
 		ShipId.TaiyouKaiNi or
 		ShipId.ShinyouKaiNi or
 		ShipId.UnyouKaiNi or
-		ShipId.KagaKaiNiGo or 
-		ShipId.Lexington or 
+		ShipId.KagaKaiNiGo or
+		ShipId.Lexington or
 		ShipId.LexingtonKai;
 
 	public static bool IsArkRoyal(this IShipData ship) => ship.MasterShip.ShipId switch
@@ -586,7 +586,7 @@ public static class ShipDataExtensions
 		{ MasterShip.ShipId: ShipId.FusouKaiNi } or
 		{ MasterShip.ShipId: ShipId.YamashiroKaiNi } or
 		{ MasterShip.ShipId: ShipId.YamatoKaiNiJuu } or
-		{ MasterShip.ShipClassTyped: ShipClass.KumanoMaru }
+		{ MasterShip.ShipClassTyped: ShipClass.SpecialshipMHeitype }
 			=> ship.HasSonar() && ship.HasAntiSubmarineAircraft() && ship.ASWTotal >= 100,
 
 		{ MasterShip.ShipType: ShipTypes.Destroyer } or
@@ -631,18 +631,23 @@ public static class ShipDataExtensions
 			EquipmentId.Autogyro_S51JKai);
 	}
 
-	public static bool CanSink(this IShipData ship, IFleetData fleet)
+	public static bool CanSink(this IShipData ship, IFleetData fleet) => ship.CanSink(fleet, ship.HPCurrent);
+
+	public static bool CanSink(this IShipData? ship, IFleetData fleet, int hp, bool usedDamecon = false)
 	{
-		if (ship.HPRate > 0.25) return false;
+		if (ship is null) return false;
+		if (hp < 1) return false;
+		if ((double)hp / ship.HPMax > 0.25) return false;
 		if (fleet.MembersInstance.FirstOrDefault() == ship) return false;
-		if (ship.HasDamecon()) return false;
+		if (ship.HasDamecon(usedDamecon ? 2 : 1)) return false;
 		if (ship.RepairingDockID > -1) return false;
 
 		return fleet.MembersWithoutEscaped!.Contains(ship);
 	}
 
-	private static bool HasDamecon(this IShipData ship) => ship.AllSlotInstance
-		.Any(e => e?.MasterEquipment.CategoryType is EquipmentTypes.DamageControl);
+	private static bool HasDamecon(this IShipData ship, int count = 1) => ship.AllSlotInstance
+		.Count(e => e?.MasterEquipment.CategoryType is EquipmentTypes.DamageControl)
+		>= count;
 
 	public static DamageState GetDamageState(this IShipData ship) => ship.HPRate switch
 	{
@@ -668,10 +673,10 @@ public static class ShipDataExtensions
 		EquipmentTypes.ExtraArmorMedium,
 		EquipmentTypes.ExtraArmorLarge,
 	];
-	
+
 	public static bool CanEquipBulge(this IShipData ship)
 		=> ship.MasterShip.EquippableCategoriesTyped.Intersect(BulgeTypes).Any();
-	
+
 	public static bool CanEquipSeaplaneFighter(this IShipData ship)
 		=> ship.MasterShip.EquippableCategoriesTyped.Contains(EquipmentTypes.SeaplaneFighter);
 

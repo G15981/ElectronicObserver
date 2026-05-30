@@ -7,6 +7,7 @@ using System.Windows.Media;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.DependencyInjection;
 using ElectronicObserver.Core;
+using ElectronicObserver.Core.Properties;
 using ElectronicObserver.Core.Types;
 using ElectronicObserver.Core.Types.AntiAir;
 using ElectronicObserver.Core.Types.Attacks;
@@ -451,9 +452,14 @@ public class FleetItemViewModel : ObservableObject
 					DayAttackKind dayAttack => DayAttack.AttackDisplay(dayAttack),
 					DayAirAttackCutinKind cvci => cvci switch
 					{
-						DayAirAttackCutinKind.FighterBomberAttacker => FormFleet.CvciFba,
-						DayAirAttackCutinKind.BomberBomberAttacker => FormFleet.CvciBba,
-						DayAirAttackCutinKind.BomberAttacker => FormFleet.CvciBa,
+						DayAirAttackCutinKind.JetFighterJetBomberJetBomber => DayAirAttackCutinKindResources.CvciJfjbjb,
+						DayAirAttackCutinKind.JetFighterJetBomber => DayAirAttackCutinKindResources.CvciJfjb,
+						DayAirAttackCutinKind.JetFighterBomberAttacker => DayAirAttackCutinKindResources.CvciJfba,
+
+						DayAirAttackCutinKind.FighterBomberAttacker => DayAirAttackCutinKindResources.CvciFba,
+						DayAirAttackCutinKind.BomberBomberAttacker => DayAirAttackCutinKindResources.CvciBba,
+						DayAirAttackCutinKind.BomberAttacker => DayAirAttackCutinKindResources.CvciBa,
+						
 						_ => "?"
 					},
 					_ => $"{attack}"
@@ -522,6 +528,13 @@ public class FleetItemViewModel : ObservableObject
 			sb.AppendFormat($"{FormFleet.Asw}: {FormFleet.Power}: {asw2}");
 
 			sb.Append($" (x{ship.AswMod():0.##})");
+
+			double aswPen = ship.GetAswArmorPenetration();
+
+			if (aswPen > 0)
+			{
+				sb.Append($" ({FormFleet.ArmorPenetration}: {aswPen:0.##})");
+			}
 
 			if (ship.CanOpeningASW)
 			{

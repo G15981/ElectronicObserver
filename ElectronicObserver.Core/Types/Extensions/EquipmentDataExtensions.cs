@@ -1,4 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using ElectronicObserver.Core.Types.Attacks;
 
 namespace ElectronicObserver.Core.Types.Extensions;
 
@@ -118,7 +121,7 @@ public static class EquipmentDataExtensions
 
 	/// <summary> 夜間行動可能な航空機かどうか </summary>
 	public static bool IsNightAircraft(this IEquipmentDataMaster equip) =>
-		equip.IsNightFighter() || equip.IsNightAttacker();
+		equip.IsNightFighter() || equip.IsNightAttacker() || equip.IsNightBomber();
 
 	/// <summary> 夜間戦闘機かどうか </summary>
 	public static bool IsNightFighter(this IEquipmentDataMaster equip) =>
@@ -127,6 +130,12 @@ public static class EquipmentDataExtensions
 	/// <summary> 夜間攻撃機かどうか </summary>
 	public static bool IsNightAttacker(this IEquipmentDataMaster equip) =>
 		equip.IconTypeTyped == EquipmentIconType.NightAttacker;
+
+	public static bool IsNightBomber(this IEquipmentDataMaster equip) =>
+		equip.IconTypeTyped == EquipmentIconType.NightBomber;
+
+	public static bool IsPhototube(this IEquipmentDataMaster equip) =>
+		equip.EquipmentId == EquipmentId.CarrierBasedBomber_SuiseiModel12_wType31PhotoelectricFuzeBombs;
 
 	/// <summary> Swordfish 系艦上攻撃機かどうか </summary>
 	public static bool IsSwordfish(this IEquipmentDataMaster equip) =>
@@ -168,6 +177,7 @@ public static class EquipmentDataExtensions
 		EquipmentId.DepthCharge_Type94DepthChargeProjector or
 		EquipmentId.DepthCharge_Type3DepthChargeProjector or
 		EquipmentId.DepthCharge_Type3DepthChargeProjector_CD or
+		EquipmentId.DepthCharge_Type3DepthChargeProjectorKai or
 		EquipmentId.DepthCharge_Prototype15cm9tubeASWRocketLauncher or
 		EquipmentId.DepthCharge_RUR4AWeaponAlphaKai or
 		EquipmentId.DepthCharge_Mk_32ASWTorpedo_Mk_2Thrower;
@@ -223,8 +233,11 @@ public static class EquipmentDataExtensions
 	/// <summary>
 	/// Aircraft that aren't night aircraft but can still participate in cvnci
 	/// </summary>
-	public static bool IsNightCapableAircraft(this IEquipmentData? equip) =>
-		equip?.MasterEquipment.IsSwordfish == true ||
+	public static bool IsNightCapableAircraft(this IEquipmentData? equip)
+		=> equip?.MasterEquipment.IsNightCapableAircraft() is true;
+
+	public static bool IsNightCapableAircraft(this IEquipmentDataMaster? equip) =>
+		equip?.IsSwordfish == true ||
 		equip?.EquipmentId == EquipmentId.CarrierBasedBomber_SuiseiModel12_wType31PhotoelectricFuzeBombs ||
 		equip?.EquipmentId == EquipmentId.CarrierBasedBomber_ZeroFighterbomberModel62_IwaiSquadron;
 
@@ -258,4 +271,55 @@ public static class EquipmentDataExtensions
 	};
 
 	public static int GetAircraftExp(this IEquipmentData equipment) => GetAircraftExp(equipment.AircraftLevel);
+
+	public static int JetSteelCost(this IEquipmentDataMaster? equipment, int aircraft)
+		=> (int)Math.Round(aircraft * JetCostMultiplier(equipment) * 0.2);
+
+	private static double JetCostMultiplier(IEquipmentDataMaster? equipment) => equipment switch
+	{
+		{ CardType: EquipmentCardType.AllFlyingWingJetBomber } => equipment.AircraftCost * 1.2,
+		{ CardType: EquipmentCardType.JetFightingBomber } => equipment.AircraftCost,
+		{ CardType: EquipmentCardType.PrototypeJetFighter } => equipment.AircraftCost * 1.1,
+
+		_ => 0,
+	};
+
+	public static DayAirAttackCutinKind GetDayAirAttackCutinKind(this List<IEquipmentDataMaster>? displayEquipment)
+	{
+		if (displayEquipment is null) return DayAirAttackCutinKind.None;
+
+		int jetFighterCount = displayEquipment.Count(e => e.CategoryType is EquipmentTypes.JetFighter);
+		int jetBomberCount = displayEquipment.Count(e => e.CategoryType is EquipmentTypes.JetBomber);
+		int fighterCount = displayEquipment.Count(e => e.CategoryType is EquipmentTypes.CarrierBasedFighter);
+		int bomberCount = displayEquipment.Count(e => e.CategoryType is EquipmentTypes.CarrierBasedBomber);
+		int attackerCount = displayEquipment.Count(e => e.CategoryType is EquipmentTypes.CarrierBasedTorpedo);
+
+		if (jetFighterCount > 0 && jetBomberCount > 1) return DayAirAttackCutinKind.JetFighterJetBomberJetBomber;
+		if (jetFighterCount > 0 && jetBomberCount > 0) return DayAirAttackCutinKind.JetFighterJetBomber;
+		if (jetFighterCount > 0 && bomberCount > 0 && attackerCount > 0) return DayAirAttackCutinKind.JetFighterBomberAttacker;
+
+		if (fighterCount > 0 && bomberCount > 0 && attackerCount > 0) return DayAirAttackCutinKind.FighterBomberAttacker;
+		if (bomberCount > 1 && attackerCount > 0) return DayAirAttackCutinKind.BomberBomberAttacker;
+		if (bomberCount > 0 && attackerCount > 0) return DayAirAttackCutinKind.BomberAttacker;
+
+		return DayAirAttackCutinKind.None;
+	}
+
+	public static CvnciKind GetNightAirAttackCutinKind(this List<IEquipmentDataMaster>? displayEquipment)
+	{
+		if (displayEquipment is null) return CvnciKind.None;
+
+		int fighterCount = displayEquipment.Count(e => e.IsNightFighter);
+		int attackerCount = displayEquipment.Count(e => e.IsNightAttacker);
+
+		return (fighterCount, attackerCount, displayEquipment.Count) switch
+		{
+			(2, 1, _) => CvnciKind.FighterFighterAttacker,
+			(1, 1, 2) => CvnciKind.FighterAttacker,
+			(_, _, 2) => CvnciKind.Phototube,
+			(_, _, 3) => CvnciKind.FighterOtherOther,
+
+			_ => CvnciKind.None,
+		};
+	}
 }

@@ -7,15 +7,12 @@ public class FormFleetTranslationViewModel : TranslationBaseViewModel
 	public string RightClickToOpenEncyclopedia => FleetResources.RightClickToOpenEncyclopedia;
 	public string ExpCalcHint => FleetResources.ExpCalcHint;
 
-	public string CvciFba => FleetResources.CvciFba;
-	public string CvciBba => FleetResources.CvciBba;
-	public string CvciBa => FleetResources.CvciBa;
-
 	public string Power => FleetResources.Power;
 	public string Accuracy => FleetResources.Accuracy;
 
 	public string Asw => FleetResources.Asw;
 	public string OpeningAsw => FleetResources.OpeningAsw;
+	public string ArmorPenetration => FleetResources.ArmorPenetration;
 	public string Aarb => FleetResources.Aarb;
 	public string AirstrikePower => FleetResources.AirstrikePower;
 
@@ -42,7 +39,6 @@ public class FormFleetTranslationViewModel : TranslationBaseViewModel
 	public string SupportTypeShelling => FleetResources.SupportTypeShelling;
 	public string SupportTypeTorpedo => FleetResources.SupportTypeTorpedo;
 
-	public string FleetNameToolTip => FleetResources.FleetNameToolTip;
 	public string WithoutProficiency => FleetResources.WithoutProficiency;
 	public string WithProficiency => FleetResources.WithProficiency;
 	public string FleetLosToolTip => FleetResources.FleetLosToolTip;

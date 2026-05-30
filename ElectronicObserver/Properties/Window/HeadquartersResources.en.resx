@@ -405,4 +405,10 @@ Monthly: {2:+##;-##;±0}</value>
   <data name="SpecialAviationRation" xml:space="preserve">
     <value>Special Aviation Ration</value>
   </data>
+  <data name="ArsenalExpansionKey" xml:space="preserve">
+    <value>Arsenal Expansion Key</value>
+  </data>
+  <data name="ArsenalResources" xml:space="preserve">
+    <value>Arsenal Resources</value>
+  </data>
 </root>

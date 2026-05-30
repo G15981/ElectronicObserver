@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using ElectronicObserver.Core.Types;
@@ -215,11 +216,15 @@ public abstract class BattleDetail
 				int id = defender.DamageControlID;
 
 				if (id == 42)
-					builder.AppendFormat($"　{BattleRes.DameconActivated} HP{0}", (int)(defender.HPMax * 0.2)).AppendLine();
-
+				{
+					Battle.UsedDamecons.Add(defender.MasterID);
+					builder.AppendLine($"　{BattleRes.DameconActivated} HP{(int)(defender.HPMax * 0.2)}");
+				}
 				else if (id == 43)
-					builder.AppendFormat($"　{BattleRes.GoddessActivated} HP{0}", defender.HPMax).AppendLine();
-
+				{
+					Battle.UsedDamecons.Add(defender.MasterID);
+					builder.AppendLine($"　{BattleRes.GoddessActivated} HP{defender.HPMax}");
+				}
 			}
 		}
 		return builder.ToString();
@@ -275,7 +280,12 @@ public class BattleDayDetail : BattleDetail
 
 	protected override string GetAttackKind()
 	{
-		return DayAttack.AttackDisplay((DayAttackKind)AttackType);
+		List<IEquipmentDataMaster> displayEquipment = EquipmentIDs
+			.Select(i => KCDatabase.Instance.MasterEquipments[i])
+			.OfType<IEquipmentDataMaster>()
+			.ToList();
+
+		return DayAttack.AttackDisplay((DayAttackKind)AttackType, displayEquipment);
 	}
 }
 
@@ -351,7 +361,12 @@ public class BattleNightDetail : BattleDetail
 
 	protected override string GetAttackKind()
 	{
-		return NightAttack.AttackDisplay((NightAttackKind)AttackType);
+		List<IEquipmentDataMaster> displayEquipment = EquipmentIDs
+			.Select(i => KCDatabase.Instance.MasterEquipments[i])
+			.OfType<IEquipmentDataMaster>()
+			.ToList();
+
+		return NightAttack.AttackDisplay((NightAttackKind)AttackType, displayEquipment);
 	}
 }
 
@@ -458,7 +473,12 @@ public class BattleFriendlyShellingDetail : BattleDetail
 
 	protected override string GetAttackKind()
 	{
-		return NightAttack.AttackDisplay((NightAttackKind)AttackType);
+		List<IEquipmentDataMaster> displayEquipment = EquipmentIDs
+			.Select(i => KCDatabase.Instance.MasterEquipments[i])
+			.OfType<IEquipmentDataMaster>()
+			.ToList();
+
+		return NightAttack.AttackDisplay((NightAttackKind)AttackType, displayEquipment);
 	}
 }
 
