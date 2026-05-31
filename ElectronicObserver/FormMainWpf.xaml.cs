@@ -45,6 +45,9 @@ public partial class FormMainWpf : System.Windows.Window
 		Loaded += (sender, _) => ViewModel.LoadLayout(sender);
 		Closed += (sender, _) => ViewModel.SaveLayout(sender);
 		Closed += (_, _) => CleanupTrayIcon();
+		// 初始化时隐藏 ModernWPF 标题栏
+		ModernWpf.Controls.TitleBar.SetExtendViewIntoTitleBar(this, true);
+		WindowChrome.GetWindowChrome(this)!.CaptionHeight = 0;
 	}
 
 	private void InitializeTrayIcon()
@@ -157,17 +160,12 @@ public partial class FormMainWpf : System.Windows.Window
 		TrayIcon.Visible = false;
 		TrayIcon.Dispose();
 		TrayIcon = null;
-
-		// 初始化时隐藏 ModernWPF 标题栏
-		ModernWpf.Controls.TitleBar.SetExtendViewIntoTitleBar(this, true);
-		WindowChrome.GetWindowChrome(this)!.CaptionHeight = 0;
-
 	}
 	private void DragArea_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
 	{
 		//if (e.ButtonState == MouseButtonState.Pressed)
 		//	this.DragMove();
-		if (e.Source is MenuItem || e.Source is ComboBox || e.Source is TextBox)
+		if (e.Source is System.Windows.Controls.MenuItem || e.Source is ComboBox || e.Source is TextBox)
 		{
 			// 点击到菜单项 -> 不拖动，让菜单正常工作
 			return;
