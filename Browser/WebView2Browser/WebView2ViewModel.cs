@@ -429,6 +429,14 @@ public class WebView2ViewModel : BrowserViewModel
 				SetCookie();
 				Navigate(KanColleUrl);
 			}
+
+			if (e.IsSuccess
+				&& Configuration?.DmmAutoLoginEnabled is true
+				&& Uri.TryCreate(webView.Source, UriKind.Absolute, out Uri? uri)
+				&& uri.Host.Equals("accounts.dmm.com", StringComparison.OrdinalIgnoreCase))
+			{
+				_ = DmmLoginFiller.TryFill(webView, Configuration, AddLog);
+			}
 		}
 	}
 

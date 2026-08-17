@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /d/74EO-Program/ElectronicObserverEN status --short)",
+      "Bash(git -C /d/74EO-Program/ElectronicObserverEN diff --stat)"
+    ]
+  }
+}

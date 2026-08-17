@@ -1950,6 +1950,9 @@ public sealed class Configuration
 		[DataMember]
 		public ConfigDataSubmission DataSubmission { get; private set; }
 
+		[DataMember]
+		public ConfigDmmAutoLogin DmmAutoLogin { get; private set; }
+
 		public class ConfigWhitecap : ConfigPartBase
 		{
 
@@ -2038,6 +2041,7 @@ public sealed class Configuration
 			BGMPlayer = new ConfigBGMPlayer();
 			FleetImageGenerator = new ConfigFleetImageGenerator();
 			DataSubmission = new ConfigDataSubmission();
+			DmmAutoLogin = new ConfigDmmAutoLogin();
 			Whitecap = new ConfigWhitecap();
 
 			TaihaBlocker = new()

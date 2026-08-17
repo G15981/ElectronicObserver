@@ -346,6 +346,10 @@ public partial class FormBrowserHost : Form
 				BrowserFont = Utility.Configuration.Config.UI.BrowserFontName,
 				MatchMainFont = Utility.Configuration.Config.UI.MatchMainFont,
 				ScreenshotMode = c.ScreenshotMode,
+				DmmAutoLoginEnabled = Utility.Configuration.Config.DmmAutoLogin.IsEnabled,
+				DmmLoginId = Utility.Configuration.Config.DmmAutoLogin.LoginId,
+				DmmPassword = Utility.Configuration.Config.DmmAutoLogin.Password,
+				DmmAutoLoginCheck = Utility.Configuration.Config.DmmAutoLogin.AutoLogin,
 			};
 		}
 	}

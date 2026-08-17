@@ -161,4 +161,19 @@ public class BrowserConfiguration
 
 	[Key(29)]
 	public ScreenshotMode ScreenshotMode { get; set; }
+
+	/// <summary>
+	/// DMM login page auto-fill: feature enabled (no UI - edit Configuration.xml)
+	/// </summary>
+	[Key(30)]
+	public bool DmmAutoLoginEnabled { get; set; }
+
+	[Key(31)]
+	public string DmmLoginId { get; set; } = "";
+
+	[Key(32)]
+	public string DmmPassword { get; set; } = "";
+
+	[Key(33)]
+	public bool DmmAutoLoginCheck { get; set; }
 }
